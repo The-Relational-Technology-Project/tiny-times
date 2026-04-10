@@ -26,15 +26,19 @@ export function getWeatherPrompt(key: string): string {
 export async function fetchEvents(apiUrl: string): Promise<EventItem[]> {
   try {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 19);
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString().slice(0, 19);
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    // Use plain date strings to avoid timezone conversion issues
+    const todayStart = `${yyyy}-${mm}-${dd}T00:00:00`;
+    const todayEnd = `${yyyy}-${mm}-${dd}T23:59:59`;
 
-    const url = `${apiUrl}?start_after=${todayStart}&start_before=${todayEnd}&limit=5`;
+    const url = `${apiUrl}?start_after=${todayStart}&start_before=${todayEnd}&limit=3`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Events API failed');
 
     const data = await res.json();
-    return (data.events || []).map((e: any) => ({
+    return (data.events || []).slice(0, 3).map((e: any) => ({
       time: new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
       name: e.name,
       place: e.location?.name || 'TBD',
