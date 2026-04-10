@@ -86,6 +86,7 @@
   body {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    background: white !important;
   }
 
   .no-print {
@@ -102,6 +103,7 @@
     border: none !important;
     margin: 0 !important;
     padding: 0.2in !important;
+    background: white !important;
   }
 
   .newspaper-page-front {
