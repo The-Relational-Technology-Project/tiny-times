@@ -1,105 +1,64 @@
 
 
-# Replace AI Images with Static Library + Move Anthropic Key to Edge Function
+# Print-First Redesign + Generate Coloring Images
 
-## Summary
-Three changes combined:
-1. **Remove OpenAI entirely** — replace with curated illustration library stored in Supabase
-2. **Move Anthropic API key to a secure backend secret** — proxy calls through an edge function instead of exposing the key client-side
-3. **Remove the "each edition costs" line** from the config screen
+## Problems Identified
 
-## Architecture
+From the PDF print output:
+1. **Too much ink** — colored background boxes on every story, weather strip, events/fact/activity cards all have background fills
+2. **Content bleeds** — page 1 content overflows past the page break (visible in the PDF where the coloring page header is tiny and squished)
+3. **Not print-optimized** — looks like a screen app, not a newspaper
+4. **No coloring images** — page 2 is empty placeholder
 
-```text
-Client                          Edge Function                    Anthropic
-  |                                  |                              |
-  |-- POST /generate-news ---------> |                              |
-  |   (city, date)                   |-- POST /v1/messages -------> |
-  |                                  |   (uses ANTHROPIC_API_KEY)   |
-  |   <-- news JSON ----------------|  <-- response ----------------|
-  |
-  |-- Query illustrations table ---> Supabase DB
-  |   (match tags to news keywords)
-```
+## Plan
 
-## Database Changes
+### 1. Redesign Newspaper Layout for Print
 
-**1. Create `illustrations` table:**
-- `id` uuid PK
-- `type` text ('coloring' | 'cartoon')  
-- `filename` text
-- `storage_path` text
-- `tags` text[]
-- `caption` text (nullable, for cartoons)
-- `last_used` timestamptz (nullable)
-- `created_at` timestamptz
+**Remove colored background boxes.** Replace with:
+- Simple thin separator lines between sections
+- Category labels in color text only (no filled header bars)
+- Headlines in color, body text in black
+- Remove `rounded-xl`, `border-2`, and `background` fills from StoryBlock and bottom cards
+- Weather strip: just text with emoji, no background box
+- Events/Fun Fact/Activity: separated by thin rules, no background fills
 
-RLS: public read, authenticated write (or open write for now since no auth).
+**Result:** Mostly black text with color accents on headings and icons. Prints cleanly in B&W because color is only on non-essential decorative elements.
 
-**2. Create `illustrations` storage bucket** (public).
+**More spacious layout:**
+- Increase vertical spacing between sections (mt-3 → mt-5)
+- Add breathing room in the masthead area
+- Stories get more line-height and padding
 
-**3. Seed 15 coloring page + 7 cartoon placeholder records** with SVG placeholders uploaded to storage.
+### 2. Fix Page Break / Bleed
 
-## Edge Function: `generate-news`
+**Root cause:** Page 1 content uses `min-height: 11in` on screen but the print CSS sets `max-height: 10.4in` with `overflow: hidden`. Content is too tall.
 
-- Accepts `{ city, childName }` in POST body
-- Reads `ANTHROPIC_API_KEY` from secrets (Deno.env)
-- Calls Anthropic API (same prompt, minus `coloring_prompt` and `cartoon_prompt`)
-- Returns the news JSON to the client
+**Fix:**
+- Set page 1 to exactly `height: 10.15in` (letter minus margins) in print, with `overflow: hidden`
+- Remove `min-height: 11in` from print
+- On screen, keep the current sizing but cap visible content
+- Ensure page 2 starts fresh after the break
 
-## Secret to Add
+### 3. Generate 5 Coloring Page Images with Lovable AI
 
-- `ANTHROPIC_API_KEY` — user will be prompted to enter their Anthropic key as a secure secret
+Use `google/gemini-3.1-flash-image-preview` to generate 5 kid-friendly coloring page images:
+- Simple black outlines on white background, no color fill
+- Subjects: a cat playing, a rocket in space, fish in the ocean, a tree with birds, a butterfly garden
+- Upload each to the `illustrations` storage bucket
+- Insert metadata rows into the `illustrations` table with appropriate tags
+- These will display on page 2 during demos
 
-## Files to Modify
+### 4. Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/lib/types.ts` | Remove `anthropicApiKey`, `openaiApiKey` from `TinyTimesConfig`. Remove `coloringImageUrl`, `cartoonImageUrl`. Add `coloringImage`, `cartoonImage` (with url, tags, caption). Remove `generating-images` step. |
-| `src/components/ConfigScreen.tsx` | Remove both API key fields. Remove cost line. Update validation (just childName + city). |
-| `src/pages/Index.tsx` | Update config validation (no API keys). |
-| `src/lib/api.ts` | Remove `generateImage()` entirely. Replace `fetchNewsAndWeather` to call edge function instead of Anthropic directly. Remove image prompt fields from Claude prompt. Add illustration selection logic. |
-| `src/components/Newspaper.tsx` | Update coloring/cartoon rendering to use library URLs. Remove `generating-images` step label. |
-| `src/lib/sampleData.ts` | Update to match new types. |
-| `src/App.tsx` | Add `/library` route. |
+| `src/components/Newspaper.tsx` | Remove background fills from StoryBlock. Remove colored boxes from events/fact/activity. Use thin separators instead. Simplify weather strip. |
+| `src/index.css` | Fix print page heights to prevent bleed. Set exact page dimensions. |
 
-## New Files
+### 5. Script for Coloring Images
 
-| File | Purpose |
-|------|---------|
-| `supabase/functions/generate-news/index.ts` | Edge function proxying Anthropic calls with server-side key |
-| `src/lib/illustrations.ts` | Selection algorithm: extract keywords from news, query illustrations table, score by tag match + recency, update `last_used` |
-| `src/pages/Library.tsx` | Library management page with Coloring/Cartoon tabs, grid view, upload, tag editing, delete |
-| `src/components/IllustrationUploader.tsx` | Drag-and-drop upload to Supabase storage + metadata insert |
-| `src/components/TagEditor.tsx` | Inline tag add/remove component |
-
-## Illustration Selection Algorithm
-
-1. Extract keywords from news headlines + bodies (lowercase, split, filter common words)
-2. Query `illustrations` where `type = 'coloring'` (or `'cartoon'`)
-3. Score: +2 per tag match, -3 if used in last 2 days, -1 if used in last 7 days
-4. Highest score wins; tie-break by oldest `last_used`
-5. Fallback: oldest/null `last_used` (round-robin)
-6. Update `last_used = now()` on selected row
-
-## Seed Data
-
-15 coloring pages (simple SVG placeholders): sun, tree, cat, dog, fish, bird, flower, house, boat, rocket, bear, butterfly, rainbow, star, ocean wave — each with matching tags.
-
-7 cartoons with captions:
-- "Decaf? In THIS economy?"
-- "This is my warrior pose. I'm a warrior bear."
-- "I told you we should have asked for directions."
-- etc.
-
-## Order of Operations
-
-1. Add `ANTHROPIC_API_KEY` secret (prompt user)
-2. Create DB migration (illustrations table)
-3. Create storage bucket
-4. Create edge function `generate-news`
-5. Seed placeholder illustrations
-6. Update types, API logic, config screen, newspaper component
-7. Build library management page + upload/tag components
-8. Add route
+Run a script that:
+1. Calls Lovable AI image generation for 5 coloring pages
+2. Uploads PNGs to the `illustrations` bucket
+3. Inserts rows into the `illustrations` table
 
