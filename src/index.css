@@ -94,17 +94,22 @@
 
   .newspaper-page {
     width: 7.9in !important;
-    min-height: auto !important;
-    max-height: 10.4in !important;
+    height: 10.15in !important;
+    min-height: unset !important;
+    max-height: 10.15in !important;
     overflow: hidden !important;
     box-shadow: none !important;
     border: none !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 0.2in !important;
   }
 
   .newspaper-page-front {
     page-break-after: always;
+  }
+
+  .newspaper-page-back {
+    page-break-before: always;
   }
 }
 
