@@ -102,6 +102,10 @@
     margin: 0 !important;
     padding: 0 !important;
   }
+
+  .newspaper-page-front {
+    page-break-after: always;
+  }
 }
 
 /* Screen styles for newspaper container */

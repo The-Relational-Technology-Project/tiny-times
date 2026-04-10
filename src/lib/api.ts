@@ -52,7 +52,6 @@ export async function fetchNewsAndWeather(config: TinyTimesConfig): Promise<{
   world: any;
   funFact: string;
   activity: string;
-  cartoonCaption: string;
 }> {
   const { data, error } = await supabase.functions.invoke('generate-news', {
     body: {
@@ -73,7 +72,6 @@ export async function fetchNewsAndWeather(config: TinyTimesConfig): Promise<{
     world: data.world,
     funFact: data.funFact,
     activity: data.activity,
-    cartoonCaption: data.cartoon_caption || data.cartoonCaption || '',
   };
 }
 
@@ -94,10 +92,7 @@ export async function generateNewspaper(
   // Step 3: Select illustrations from library
   onStep('selecting-illustrations');
   const keywords = extractKeywords([news.local, news.national, news.world]);
-  const [coloringImage, cartoonImage] = await Promise.all([
-    selectIllustration('coloring', keywords),
-    selectIllustration('cartoon', keywords),
-  ]);
+  const coloringImage = await selectIllustration('coloring', keywords);
 
   return {
     childName: config.childName,
@@ -112,7 +107,5 @@ export async function generateNewspaper(
       { time: 'All day', name: 'No events listed today', place: config.neighborhood }
     ],
     coloringImage: coloringImage || undefined,
-    cartoonImage: cartoonImage || undefined,
-    cartoonCaption: cartoonImage?.caption || news.cartoonCaption || '',
   };
 }
