@@ -42,8 +42,6 @@ export interface NewspaperData {
   activity: string;
   events: EventItem[];
   coloringImage?: IllustrationRef;
-  cartoonImage?: IllustrationRef;
-  cartoonCaption: string;
 }
 
 export type GenerationStep =

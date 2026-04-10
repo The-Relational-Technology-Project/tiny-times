@@ -29,5 +29,4 @@ export const sampleData: NewspaperData = {
     { time: "7:00 PM", name: "Write & Delight: Calligraphy for Beginners", place: "Sunset Commons" },
     { time: "8:00 PM", name: "Art Show Opening: Hawaiian Comfort", place: "Blackbird Cafe" }
   ],
-  cartoonCaption: '"Are we there yet?" "We haven\'t left."'
 };

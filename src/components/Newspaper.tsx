@@ -60,12 +60,7 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
               {STEP_LABELS[step] || 'Working…'}
             </span>
           )}
-          <Button
-            onClick={handleGenerate}
-            disabled={isLoading}
-            size="sm"
-            className="font-body font-semibold"
-          >
+          <Button onClick={handleGenerate} disabled={isLoading} size="sm" className="font-body font-semibold">
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Generate
           </Button>
@@ -91,74 +86,67 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
         </div>
       )}
 
-      {/* Newspaper page */}
-      <div className="newspaper-page mt-6 p-[0.35in] overflow-hidden" style={{ background: 'white' }}>
+      {/* ===== PAGE 1: Front ===== */}
+      <div className="newspaper-page newspaper-page-front mt-6 p-[0.4in] overflow-hidden" style={{ background: 'white' }}>
         {/* Masthead */}
-        <div className="text-center pb-2 mb-1 border-b-4 border-double" style={{ borderColor: 'hsl(var(--masthead))' }}>
-          <div className="flex items-center justify-center gap-2 mb-0.5">
+        <div className="text-center pb-3 mb-3 border-b-4 border-double" style={{ borderColor: 'hsl(var(--masthead))' }}>
+          <div className="flex items-center justify-center gap-2 mb-1">
             <div className="h-px flex-1" style={{ background: 'hsl(var(--masthead))' }} />
-            <span className="text-[10px] font-body font-semibold tracking-[0.2em] uppercase" style={{ color: 'hsl(var(--masthead))' }}>
+            <span className="text-[11px] font-body font-semibold tracking-[0.2em] uppercase" style={{ color: 'hsl(var(--masthead))' }}>
               Est. 2026 · Your Daily Newspaper
             </span>
             <div className="h-px flex-1" style={{ background: 'hsl(var(--masthead))' }} />
           </div>
-          <h1 className="font-display text-[42px] leading-none tracking-tight" style={{ color: 'hsl(var(--masthead))' }}>
+          <h1 className="font-display text-[56px] leading-none tracking-tight" style={{ color: 'hsl(var(--masthead))' }}>
             The Tiny Times
           </h1>
-          <div className="flex items-center justify-center gap-3 mt-1">
-            <span className="text-xs font-body" style={{ color: 'hsl(var(--muted-foreground))' }}>{data.date}</span>
-            <span style={{ color: 'hsl(var(--masthead-accent))' }}>★</span>
-            <span className="text-xs font-body font-bold" style={{ color: 'hsl(var(--masthead))' }}>
-              Good Morning, {data.childName}!
+          <div className="mt-1.5 mb-1">
+            <span className="inline-block text-sm font-display tracking-wide uppercase px-4 py-0.5 rounded-full" style={{ background: 'hsl(var(--masthead-accent))', color: 'hsl(var(--masthead-foreground))' }}>
+              ✦ The {config.neighborhood} Edition ✦
             </span>
           </div>
+          <div className="flex items-center justify-center gap-3 mt-2">
+            <span className="text-sm font-body" style={{ color: 'hsl(var(--muted-foreground))' }}>{data.date}</span>
+            <span style={{ color: 'hsl(var(--masthead-accent))' }}>★</span>
+          </div>
+          <p className="font-display text-[28px] mt-2 leading-tight" style={{ color: 'hsl(var(--masthead))' }}>
+            Good Morning, {data.childName}! ☀️
+          </p>
         </div>
 
         {/* Weather strip */}
-        <div className="flex items-center justify-center gap-3 py-1.5 px-3 rounded-md my-1.5 text-sm" style={{ background: 'hsl(var(--weather-bg))' }}>
-          <span className="text-lg">{data.weather.emoji}</span>
-          <span className="font-body font-bold" style={{ color: 'hsl(var(--weather-foreground))' }}>
+        <div className="flex items-center justify-center gap-4 py-2.5 px-4 rounded-xl my-2" style={{ background: 'hsl(var(--weather-bg))' }}>
+          <span className="text-3xl">{data.weather.emoji}</span>
+          <span className="font-display text-lg" style={{ color: 'hsl(var(--weather-foreground))' }}>
             {data.weather.temp}°F · {data.weather.desc}
           </span>
-          <span className="font-body text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
+          <span className="font-body text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
             {getWeatherPrompt(data.weather.desc?.toLowerCase())}
           </span>
         </div>
 
-        {/* Main content: 3 stories */}
-        <div className="grid grid-cols-3 gap-2 mt-2">
+        {/* Stories: 2-col top row + full-width bottom */}
+        <div className="grid grid-cols-2 gap-3 mt-3">
           <StoryBlock category={`${config.city} News`} story={data.local} colorVar="story-local" />
           <StoryBlock category="Our Country" story={data.national} colorVar="story-national" />
+        </div>
+        <div className="mt-3">
           <StoryBlock category="Our World" story={data.world} colorVar="story-world" />
         </div>
 
-        {/* Middle row: Coloring + Events + Fun Fact + Activity */}
-        <div className="grid grid-cols-3 gap-2 mt-2">
-          {/* Coloring page */}
-          <div className="border rounded-md overflow-hidden" style={{ borderColor: 'hsl(var(--border))' }}>
-            <div className="text-[9px] font-display text-center py-0.5" style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
-              ✏️ Color Me In!
-            </div>
-            {data.coloringImage?.url ? (
-              <img src={data.coloringImage.url} alt="Coloring page" className="w-full aspect-square object-contain" />
-            ) : (
-              <div className="w-full aspect-square flex items-center justify-center bg-muted/30">
-                <span className="text-3xl">🖍️</span>
-              </div>
-            )}
-          </div>
-
+        {/* Bottom row: Events + Fun Fact + Activity */}
+        <div className="grid grid-cols-3 gap-3 mt-3">
           {/* Events */}
-          <div className="rounded-md p-2" style={{ background: 'hsl(var(--events-bg))' }}>
-            <div className="flex items-center gap-1 mb-1.5">
-              <Calendar className="h-3 w-3" style={{ color: 'hsl(var(--masthead))' }} />
-              <span className="font-display text-[11px]" style={{ color: 'hsl(var(--masthead))' }}>
+          <div className="rounded-xl p-3" style={{ background: 'hsl(var(--events-bg))' }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Calendar className="h-4 w-4" style={{ color: 'hsl(var(--masthead))' }} />
+              <span className="font-display text-[13px]" style={{ color: 'hsl(var(--masthead))' }}>
                 {config.neighborhood} Today
               </span>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {data.events.map((event, i) => (
-                <div key={i} className="text-[9px] font-body leading-tight">
+                <div key={i} className="text-[11px] font-body leading-snug">
                   <span className="font-bold">{event.time}</span>
                   <br />
                   <span>{event.name}</span>
@@ -169,46 +157,58 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
             </div>
           </div>
 
-          {/* Fun fact + Activity */}
-          <div className="space-y-2">
-            <div className="rounded-md p-2" style={{ background: 'hsl(var(--story-world-bg))' }}>
-              <div className="flex items-center gap-1 mb-1">
-                <Star className="h-3 w-3" style={{ color: 'hsl(var(--story-world))' }} />
-                <span className="font-display text-[11px]" style={{ color: 'hsl(var(--story-world))' }}>Fun Fact</span>
-              </div>
-              <p className="text-[10px] font-body leading-snug">{data.funFact}</p>
+          {/* Fun Fact */}
+          <div className="rounded-xl p-3" style={{ background: 'hsl(var(--story-world-bg))' }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Star className="h-4 w-4" style={{ color: 'hsl(var(--story-world))' }} />
+              <span className="font-display text-[13px]" style={{ color: 'hsl(var(--story-world))' }}>Fun Fact</span>
             </div>
-            <div className="rounded-md p-2" style={{ background: 'hsl(var(--story-local-bg))' }}>
-              <div className="flex items-center gap-1 mb-1">
-                <Lightbulb className="h-3 w-3" style={{ color: 'hsl(var(--story-local))' }} />
-                <span className="font-display text-[11px]" style={{ color: 'hsl(var(--story-local))' }}>Today's Activity</span>
-              </div>
-              <p className="text-[10px] font-body leading-snug">{data.activity}</p>
-            </div>
+            <p className="text-[12px] font-body leading-relaxed">{data.funFact}</p>
           </div>
-        </div>
 
-        {/* Cartoon */}
-        <div className="mt-2 border rounded-md overflow-hidden" style={{ borderColor: 'hsl(var(--border))' }}>
-          <div className="text-[9px] font-display text-center py-0.5" style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
-            Today's Cartoon
-          </div>
-          {data.cartoonImage?.url ? (
-            <img src={data.cartoonImage.url} alt="Daily cartoon" className="w-full max-h-[2in] object-contain" />
-          ) : (
-            <div className="w-full h-[1.5in] flex items-center justify-center bg-muted/30">
-              <span className="text-3xl">🐻</span>
+          {/* Activity */}
+          <div className="rounded-xl p-3" style={{ background: 'hsl(var(--story-local-bg))' }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Lightbulb className="h-4 w-4" style={{ color: 'hsl(var(--story-local))' }} />
+              <span className="font-display text-[13px]" style={{ color: 'hsl(var(--story-local))' }}>Today's Activity</span>
             </div>
-          )}
-          <p className="text-center font-caption italic text-[11px] py-1 px-4" style={{ color: 'hsl(var(--foreground))' }}>
-            {data.cartoonCaption}
-          </p>
+            <p className="text-[12px] font-body leading-relaxed">{data.activity}</p>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-2 pt-1 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
-          <p className="text-[8px] font-body text-muted-foreground">
+        <div className="text-center mt-3 pt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+          <p className="text-[9px] font-body text-muted-foreground">
             The Tiny Times · {config.city} · Events: outersunset.today (CC BY 4.0)
+          </p>
+        </div>
+      </div>
+
+      {/* ===== PAGE 2: Coloring Page (Back) ===== */}
+      <div className="newspaper-page newspaper-page-back mt-6 p-[0.4in] flex flex-col" style={{ background: 'white' }}>
+        <div className="text-center mb-4">
+          <h2 className="font-display text-[36px] leading-none" style={{ color: 'hsl(var(--masthead))' }}>
+            ✏️ Color Me In!
+          </h2>
+          <p className="font-body text-sm mt-1 text-muted-foreground">
+            Grab your crayons and make this picture beautiful!
+          </p>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center border-2 border-dashed rounded-2xl overflow-hidden" style={{ borderColor: 'hsl(var(--border))' }}>
+          {data.coloringImage?.url ? (
+            <img src={data.coloringImage.url} alt="Coloring page" className="w-full h-full object-contain p-4" />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <span className="text-6xl">🖍️</span>
+              <span className="font-body text-sm">Coloring page will appear here</span>
+            </div>
+          )}
+        </div>
+
+        <div className="text-center mt-4 pt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+          <p className="text-[9px] font-body text-muted-foreground">
+            The Tiny Times · {config.city} · Made with ❤️ for {data.childName}
           </p>
         </div>
       </div>
@@ -218,19 +218,19 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
 
 function StoryBlock({ category, story, colorVar }: { category: string; story: any; colorVar: string }) {
   return (
-    <div className="rounded-md overflow-hidden border" style={{ borderColor: `hsl(var(--${colorVar}))`, borderWidth: '1px' }}>
-      <div className="px-2 py-0.5" style={{ background: `hsl(var(--${colorVar}))` }}>
-        <span className="text-[9px] font-display text-white tracking-wide uppercase">{category}</span>
+    <div className="rounded-xl overflow-hidden border-2" style={{ borderColor: `hsl(var(--${colorVar}))` }}>
+      <div className="px-3 py-1" style={{ background: `hsl(var(--${colorVar}))` }}>
+        <span className="text-[11px] font-display text-white tracking-wide uppercase">{category}</span>
       </div>
-      <div className="p-2" style={{ background: `hsl(var(--${colorVar}-bg))` }}>
-        <h3 className="font-display text-[13px] leading-tight mb-1" style={{ color: `hsl(var(--${colorVar}))` }}>
+      <div className="p-3" style={{ background: `hsl(var(--${colorVar}-bg))` }}>
+        <h3 className="font-display text-[18px] leading-tight mb-1.5" style={{ color: `hsl(var(--${colorVar}))` }}>
           {story.headline}
         </h3>
-        <p className="text-[10px] font-body leading-snug mb-1.5">{story.body}</p>
-        <p className="text-[9px] font-body italic" style={{ color: `hsl(var(--${colorVar}))` }}>
+        <p className="text-[13px] font-body leading-relaxed mb-2">{story.body}</p>
+        <p className="text-[11px] font-body italic" style={{ color: `hsl(var(--${colorVar}))` }}>
           💬 {story.question}
         </p>
-        <p className="text-[7px] font-body text-muted-foreground mt-1">Source: {story.source}</p>
+        <p className="text-[8px] font-body text-muted-foreground mt-1.5">Source: {story.source}</p>
       </div>
     </div>
   );

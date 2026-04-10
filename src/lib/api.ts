@@ -94,10 +94,7 @@ export async function generateNewspaper(
   // Step 3: Select illustrations from library
   onStep('selecting-illustrations');
   const keywords = extractKeywords([news.local, news.national, news.world]);
-  const [coloringImage, cartoonImage] = await Promise.all([
-    selectIllustration('coloring', keywords),
-    selectIllustration('cartoon', keywords),
-  ]);
+  const coloringImage = await selectIllustration('coloring', keywords);
 
   return {
     childName: config.childName,
@@ -112,7 +109,5 @@ export async function generateNewspaper(
       { time: 'All day', name: 'No events listed today', place: config.neighborhood }
     ],
     coloringImage: coloringImage || undefined,
-    cartoonImage: cartoonImage || undefined,
-    cartoonCaption: cartoonImage?.caption || news.cartoonCaption || '',
   };
 }
