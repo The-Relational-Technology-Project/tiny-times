@@ -1,63 +1,105 @@
 
 
-# The Tiny Times — Daily Personalized Newspaper for Toddlers
+# Replace AI Images with Static Library + Move Anthropic Key to Edge Function
 
-## Overview
-A print-first web app that generates a daily personalized newspaper for toddlers (ages 2-5). Parents configure it once, then click "Generate" each morning to produce a beautiful, single-page printable newspaper with real news, local events, weather, a coloring page, a cartoon, and activities.
+## Summary
+Three changes combined:
+1. **Remove OpenAI entirely** — replace with curated illustration library stored in Supabase
+2. **Move Anthropic API key to a secure backend secret** — proxy calls through an edge function instead of exposing the key client-side
+3. **Remove the "each edition costs" line** from the config screen
 
-## Screens
+## Architecture
 
-### 1. Configuration Screen (one-time setup)
-- Friendly onboarding form collecting: child's name, city, neighborhood, events API URL (with defaults), Anthropic API key, OpenAI API key
-- Stored in localStorage
-- Warm, inviting design that matches the newspaper aesthetic
-- "Start Reading" button → navigates to newspaper view
+```text
+Client                          Edge Function                    Anthropic
+  |                                  |                              |
+  |-- POST /generate-news ---------> |                              |
+  |   (city, date)                   |-- POST /v1/messages -------> |
+  |                                  |   (uses ANTHROPIC_API_KEY)   |
+  |   <-- news JSON ----------------|  <-- response ----------------|
+  |
+  |-- Query illustrations table ---> Supabase DB
+  |   (match tags to news keywords)
+```
 
-### 2. Newspaper View (main screen)
-A print-optimized, single-page (8.5×11") newspaper layout with these content blocks:
+## Database Changes
 
-- **Masthead**: "The Tiny Times" in Fredoka One, date, personalized greeting — warm red with gold accents
-- **Weather strip**: Emoji, temperature, playful prompt — thin horizontal bar
-- **Three news stories** in a columnar layout: Local / National / World, each with category label, headline, 2-sentence body, conversation question, source — accent colors (orange, green, blue)
-- **Coloring page panel**: AI-generated black-and-white line drawing (PNG)
-- **Local events panel**: "[Neighborhood] Today" with 3-5 events (time, name, location)
-- **Fun fact**: Single delightful sentence
-- **Activity suggestion**: Weather/news-tied activity
-- **Daily cartoon**: Full-width line-art panel with witty caption in italic serif
-- **Footer**: Attribution with CC BY 4.0 credit
+**1. Create `illustrations` table:**
+- `id` uuid PK
+- `type` text ('coloring' | 'cartoon')  
+- `filename` text
+- `storage_path` text
+- `tags` text[]
+- `caption` text (nullable, for cartoons)
+- `last_used` timestamptz (nullable)
+- `created_at` timestamptz
 
-UI controls (hidden in print):
-- **Generate button** with loading states ("Gathering today's news…", "Drawing your coloring page…")
-- **Print button** — one-click, clean output
-- **Settings gear** — to edit config
+RLS: public read, authenticated write (or open write for now since no auth).
 
-### 3. Print Output
-- `@media print` CSS hides all UI controls
-- Optimized for US Letter (8.5×11") portrait
-- Tight spacing, graceful truncation if content overflows
-- No browser chrome
+**2. Create `illustrations` storage bucket** (public).
 
-## Typography & Design
-- **Masthead/Headlines**: Fredoka One (Google Fonts) — bold, rounded, playful
-- **Body**: Nunito (Google Fonts) — clean, readable at small sizes
-- **Cartoon caption**: Playfair Display Italic — classic New Yorker feel
-- **Colors**: Warm red masthead, golden yellow accents, soft orange/green/blue story blocks, white backgrounds
-- **Feel**: Warm, handmade, fridge-worthy — Highlights magazine meets neighborhood newsletter
+**3. Seed 15 coloring page + 7 cartoon placeholder records** with SVG placeholders uploaded to storage.
 
-## Data Flow (on "Generate" click)
-1. Fetch community events from neighborhood API (fast, no auth)
-2. Fetch news + weather + image prompts from Anthropic Claude API (with web search tool)
-3. In parallel after step 2: Generate coloring page + cartoon via OpenAI Images API
-4. Render everything into the newspaper layout
+## Edge Function: `generate-news`
 
-## Error Handling
-- Friendly fallbacks for each section if API calls fail (e.g., "Today's coloring page is taking a nap!")
-- Layout never breaks — graceful degradation
-- Sample/mock data shown before first generation
+- Accepts `{ city, childName }` in POST body
+- Reads `ANTHROPIC_API_KEY` from secrets (Deno.env)
+- Calls Anthropic API (same prompt, minus `coloring_prompt` and `cartoon_prompt`)
+- Returns the news JSON to the client
 
-## Technical Notes
-- API keys stored in localStorage (Anthropic + OpenAI called directly from client since these are user-provided keys)
-- API calls made from the browser using the user's own keys
-- Sample data pre-populated for initial design preview
-- Cost estimate shown subtly (~$0.05-0.15 per generation)
+## Secret to Add
+
+- `ANTHROPIC_API_KEY` — user will be prompted to enter their Anthropic key as a secure secret
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/lib/types.ts` | Remove `anthropicApiKey`, `openaiApiKey` from `TinyTimesConfig`. Remove `coloringImageUrl`, `cartoonImageUrl`. Add `coloringImage`, `cartoonImage` (with url, tags, caption). Remove `generating-images` step. |
+| `src/components/ConfigScreen.tsx` | Remove both API key fields. Remove cost line. Update validation (just childName + city). |
+| `src/pages/Index.tsx` | Update config validation (no API keys). |
+| `src/lib/api.ts` | Remove `generateImage()` entirely. Replace `fetchNewsAndWeather` to call edge function instead of Anthropic directly. Remove image prompt fields from Claude prompt. Add illustration selection logic. |
+| `src/components/Newspaper.tsx` | Update coloring/cartoon rendering to use library URLs. Remove `generating-images` step label. |
+| `src/lib/sampleData.ts` | Update to match new types. |
+| `src/App.tsx` | Add `/library` route. |
+
+## New Files
+
+| File | Purpose |
+|------|---------|
+| `supabase/functions/generate-news/index.ts` | Edge function proxying Anthropic calls with server-side key |
+| `src/lib/illustrations.ts` | Selection algorithm: extract keywords from news, query illustrations table, score by tag match + recency, update `last_used` |
+| `src/pages/Library.tsx` | Library management page with Coloring/Cartoon tabs, grid view, upload, tag editing, delete |
+| `src/components/IllustrationUploader.tsx` | Drag-and-drop upload to Supabase storage + metadata insert |
+| `src/components/TagEditor.tsx` | Inline tag add/remove component |
+
+## Illustration Selection Algorithm
+
+1. Extract keywords from news headlines + bodies (lowercase, split, filter common words)
+2. Query `illustrations` where `type = 'coloring'` (or `'cartoon'`)
+3. Score: +2 per tag match, -3 if used in last 2 days, -1 if used in last 7 days
+4. Highest score wins; tie-break by oldest `last_used`
+5. Fallback: oldest/null `last_used` (round-robin)
+6. Update `last_used = now()` on selected row
+
+## Seed Data
+
+15 coloring pages (simple SVG placeholders): sun, tree, cat, dog, fish, bird, flower, house, boat, rocket, bear, butterfly, rainbow, star, ocean wave — each with matching tags.
+
+7 cartoons with captions:
+- "Decaf? In THIS economy?"
+- "This is my warrior pose. I'm a warrior bear."
+- "I told you we should have asked for directions."
+- etc.
+
+## Order of Operations
+
+1. Add `ANTHROPIC_API_KEY` secret (prompt user)
+2. Create DB migration (illustrations table)
+3. Create storage bucket
+4. Create edge function `generate-news`
+5. Seed placeholder illustrations
+6. Update types, API logic, config screen, newspaper component
+7. Build library management page + upload/tag components
+8. Add route
 
