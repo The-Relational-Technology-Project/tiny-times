@@ -40,7 +40,6 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
   };
 
   const handlePrint = () => window.print();
-
   const isLoading = step !== 'idle' && step !== 'done' && step !== 'error';
 
   return (
@@ -87,57 +86,56 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
       )}
 
       {/* ===== PAGE 1: Front ===== */}
-      <div className="newspaper-page newspaper-page-front mt-6 p-[0.4in] overflow-hidden" style={{ background: 'white' }}>
+      <div className="newspaper-page newspaper-page-front mt-6 p-[0.4in]" style={{ background: 'white' }}>
         {/* Masthead */}
-        <div className="text-center pb-3 mb-3 border-b-4 border-double" style={{ borderColor: 'hsl(var(--masthead))' }}>
+        <div className="text-center pb-4 mb-4">
           <div className="flex items-center justify-center gap-2 mb-1">
-            <div className="h-px flex-1" style={{ background: 'hsl(var(--masthead))' }} />
-            <span className="text-[11px] font-body font-semibold tracking-[0.2em] uppercase" style={{ color: 'hsl(var(--masthead))' }}>
+            <div className="h-px flex-1 bg-foreground/20" />
+            <span className="text-[10px] font-body font-semibold tracking-[0.2em] uppercase text-muted-foreground">
               Est. 2026 · Your Daily Newspaper
             </span>
-            <div className="h-px flex-1" style={{ background: 'hsl(var(--masthead))' }} />
+            <div className="h-px flex-1 bg-foreground/20" />
           </div>
           <h1 className="font-display text-[56px] leading-none tracking-tight" style={{ color: 'hsl(var(--masthead))' }}>
             The Tiny Times
           </h1>
-          <div className="mt-1.5 mb-1">
-            <span className="inline-block text-sm font-display tracking-wide uppercase px-4 py-0.5 rounded-full" style={{ background: 'hsl(var(--masthead-accent))', color: 'hsl(var(--masthead-foreground))' }}>
-              ✦ The {config.neighborhood} Edition ✦
-            </span>
+          <p className="text-sm font-display tracking-wide uppercase mt-1" style={{ color: 'hsl(var(--masthead))' }}>
+            ✦ The {config.neighborhood} Edition ✦
+          </p>
+          <div className="flex items-center justify-center gap-3 mt-2 text-sm font-body text-muted-foreground">
+            <span>{data.date}</span>
           </div>
-          <div className="flex items-center justify-center gap-3 mt-2">
-            <span className="text-sm font-body" style={{ color: 'hsl(var(--muted-foreground))' }}>{data.date}</span>
-            <span style={{ color: 'hsl(var(--masthead-accent))' }}>★</span>
-          </div>
-          <p className="font-display text-[28px] mt-2 leading-tight" style={{ color: 'hsl(var(--masthead))' }}>
+          <p className="font-display text-[28px] mt-3 leading-tight" style={{ color: 'hsl(var(--masthead))' }}>
             Good Morning, {data.childName}! ☀️
           </p>
+          <div className="h-[2px] mt-4 bg-foreground/15" />
         </div>
 
-        {/* Weather strip */}
-        <div className="flex items-center justify-center gap-4 py-2.5 px-4 rounded-xl my-2" style={{ background: 'hsl(var(--weather-bg))' }}>
-          <span className="text-3xl">{data.weather.emoji}</span>
-          <span className="font-display text-lg" style={{ color: 'hsl(var(--weather-foreground))' }}>
+        {/* Weather strip — text only, no background */}
+        <div className="flex items-center justify-center gap-3 pb-4 mb-4 border-b border-foreground/10">
+          <span className="text-2xl">{data.weather.emoji}</span>
+          <span className="font-display text-base">
             {data.weather.temp}°F · {data.weather.desc}
           </span>
-          <span className="font-body text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
+          <span className="font-body text-sm text-muted-foreground">
             {getWeatherPrompt(data.weather.desc?.toLowerCase())}
           </span>
         </div>
 
-        {/* Stories: 2-col top row + full-width bottom */}
-        <div className="grid grid-cols-2 gap-3 mt-3">
+        {/* Stories */}
+        <div className="grid grid-cols-2 gap-5 mb-4">
           <StoryBlock category={`${config.city} News`} story={data.local} colorVar="story-local" />
           <StoryBlock category="Our Country" story={data.national} colorVar="story-national" />
         </div>
-        <div className="mt-3">
+        <div className="mb-4">
           <StoryBlock category="Our World" story={data.world} colorVar="story-world" />
         </div>
 
-        {/* Bottom row: Events + Fun Fact + Activity */}
-        <div className="grid grid-cols-3 gap-3 mt-3">
+        {/* Bottom row: Events + Fun Fact + Activity — no background fills */}
+        <div className="h-px bg-foreground/10 mb-4" />
+        <div className="grid grid-cols-3 gap-5">
           {/* Events */}
-          <div className="rounded-xl p-3" style={{ background: 'hsl(var(--events-bg))' }}>
+          <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Calendar className="h-4 w-4" style={{ color: 'hsl(var(--masthead))' }} />
               <span className="font-display text-[13px]" style={{ color: 'hsl(var(--masthead))' }}>
@@ -158,7 +156,7 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
           </div>
 
           {/* Fun Fact */}
-          <div className="rounded-xl p-3" style={{ background: 'hsl(var(--story-world-bg))' }}>
+          <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Star className="h-4 w-4" style={{ color: 'hsl(var(--story-world))' }} />
               <span className="font-display text-[13px]" style={{ color: 'hsl(var(--story-world))' }}>Fun Fact</span>
@@ -167,7 +165,7 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
           </div>
 
           {/* Activity */}
-          <div className="rounded-xl p-3" style={{ background: 'hsl(var(--story-local-bg))' }}>
+          <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Lightbulb className="h-4 w-4" style={{ color: 'hsl(var(--story-local))' }} />
               <span className="font-display text-[13px]" style={{ color: 'hsl(var(--story-local))' }}>Today's Activity</span>
@@ -177,7 +175,7 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-3 pt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+        <div className="text-center mt-4 pt-2 border-t border-foreground/10">
           <p className="text-[9px] font-body text-muted-foreground">
             The Tiny Times · {config.city} · Events: outersunset.today (CC BY 4.0)
           </p>
@@ -195,7 +193,7 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
           </p>
         </div>
 
-        <div className="flex-1 flex items-center justify-center border-2 border-dashed rounded-2xl overflow-hidden" style={{ borderColor: 'hsl(var(--border))' }}>
+        <div className="flex-1 flex items-center justify-center border-2 border-dashed rounded-2xl overflow-hidden border-foreground/20">
           {data.coloringImage?.url ? (
             <img src={data.coloringImage.url} alt="Coloring page" className="w-full h-full object-contain p-4" />
           ) : (
@@ -206,7 +204,7 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
           )}
         </div>
 
-        <div className="text-center mt-4 pt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+        <div className="text-center mt-4 pt-2 border-t border-foreground/10">
           <p className="text-[9px] font-body text-muted-foreground">
             The Tiny Times · {config.city} · Made with ❤️ for {data.childName}
           </p>
@@ -218,20 +216,18 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
 
 function StoryBlock({ category, story, colorVar }: { category: string; story: any; colorVar: string }) {
   return (
-    <div className="rounded-xl overflow-hidden border-2" style={{ borderColor: `hsl(var(--${colorVar}))` }}>
-      <div className="px-3 py-1" style={{ background: `hsl(var(--${colorVar}))` }}>
-        <span className="text-[11px] font-display text-white tracking-wide uppercase">{category}</span>
-      </div>
-      <div className="p-3" style={{ background: `hsl(var(--${colorVar}-bg))` }}>
-        <h3 className="font-display text-[18px] leading-tight mb-1.5" style={{ color: `hsl(var(--${colorVar}))` }}>
-          {story.headline}
-        </h3>
-        <p className="text-[13px] font-body leading-relaxed mb-2">{story.body}</p>
-        <p className="text-[11px] font-body italic" style={{ color: `hsl(var(--${colorVar}))` }}>
-          💬 {story.question}
-        </p>
-        <p className="text-[8px] font-body text-muted-foreground mt-1.5">Source: {story.source}</p>
-      </div>
+    <div>
+      <span className="text-[11px] font-display tracking-wide uppercase font-bold" style={{ color: `hsl(var(--${colorVar}))` }}>
+        {category}
+      </span>
+      <h3 className="font-display text-[18px] leading-tight mt-1 mb-1.5" style={{ color: `hsl(var(--${colorVar}))` }}>
+        {story.headline}
+      </h3>
+      <p className="text-[13px] font-body leading-relaxed mb-2">{story.body}</p>
+      <p className="text-[11px] font-body italic" style={{ color: `hsl(var(--${colorVar}))` }}>
+        💬 {story.question}
+      </p>
+      <p className="text-[8px] font-body text-muted-foreground mt-1">Source: {story.source}</p>
     </div>
   );
 }
