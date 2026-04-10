@@ -43,9 +43,6 @@ For each story: max 2 short sentences a toddler could follow.
 Headlines: max 7 words, active and fun.
 Only positive, wonder-filled stories. Nothing scary.
 
-Also provide:
-- cartoon_caption: a short witty caption for a daily cartoon (funny for parents, delightful for toddlers)
-
 Return ONLY valid JSON. No markdown. No code fences.
 {
   "weather": {"emoji": "sun/cloud/rain/snow/fog/wind", "desc": "one word", "temp": "number"},
@@ -53,8 +50,7 @@ Return ONLY valid JSON. No markdown. No code fences.
   "national": {"headline": "", "body": "", "question": "", "source": ""},
   "world": {"headline": "", "body": "", "question": "", "source": ""},
   "funFact": "one fun sentence",
-  "activity": "one activity suggestion tied to today's weather or news",
-  "cartoon_caption": "the funny caption"
+  "activity": "one activity suggestion tied to today's weather or news"
 }`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -82,7 +78,6 @@ Return ONLY valid JSON. No markdown. No code fences.
 
     const data = await res.json();
 
-    // Extract text content
     let jsonStr = '';
     for (const block of data.content || []) {
       if (block.type === 'text') {
