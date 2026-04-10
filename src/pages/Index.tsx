@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { TinyTimesConfig } from '@/lib/types';
 import { ConfigScreen } from '@/components/ConfigScreen';
 import { Newspaper } from '@/components/Newspaper';
@@ -10,7 +10,7 @@ function loadConfig(): TinyTimesConfig | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed.childName && parsed.anthropicApiKey && parsed.openaiApiKey) return parsed;
+    if (parsed.childName && parsed.city) return parsed;
     return null;
   } catch { return null; }
 }

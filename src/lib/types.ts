@@ -3,8 +3,6 @@ export interface TinyTimesConfig {
   city: string;
   neighborhood: string;
   eventsApiUrl: string;
-  anthropicApiKey: string;
-  openaiApiKey: string;
 }
 
 export interface WeatherData {
@@ -26,6 +24,13 @@ export interface EventItem {
   place: string;
 }
 
+export interface IllustrationRef {
+  id: string;
+  url: string;
+  tags: string[];
+  caption?: string;
+}
+
 export interface NewspaperData {
   childName: string;
   date: string;
@@ -36,8 +41,8 @@ export interface NewspaperData {
   funFact: string;
   activity: string;
   events: EventItem[];
-  coloringImageUrl?: string;
-  cartoonImageUrl?: string;
+  coloringImage?: IllustrationRef;
+  cartoonImage?: IllustrationRef;
   cartoonCaption: string;
 }
 
@@ -45,6 +50,6 @@ export type GenerationStep =
   | 'idle'
   | 'fetching-events'
   | 'fetching-news'
-  | 'generating-images'
+  | 'selecting-illustrations'
   | 'done'
   | 'error';

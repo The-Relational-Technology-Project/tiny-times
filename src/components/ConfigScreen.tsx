@@ -16,10 +16,8 @@ export function ConfigScreen({ onSave, initialConfig }: ConfigScreenProps) {
   const [city, setCity] = useState(initialConfig?.city || 'San Francisco');
   const [neighborhood, setNeighborhood] = useState(initialConfig?.neighborhood || 'Outer Sunset');
   const [eventsApiUrl, setEventsApiUrl] = useState(initialConfig?.eventsApiUrl || DEFAULT_EVENTS_URL);
-  const [anthropicApiKey, setAnthropicApiKey] = useState(initialConfig?.anthropicApiKey || '');
-  const [openaiApiKey, setOpenaiApiKey] = useState(initialConfig?.openaiApiKey || '');
 
-  const isValid = childName.trim() && city.trim() && anthropicApiKey.trim() && openaiApiKey.trim();
+  const isValid = childName.trim() && city.trim();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,8 +27,6 @@ export function ConfigScreen({ onSave, initialConfig }: ConfigScreenProps) {
       city: city.trim(),
       neighborhood: neighborhood.trim() || 'Outer Sunset',
       eventsApiUrl: eventsApiUrl.trim() || DEFAULT_EVENTS_URL,
-      anthropicApiKey: anthropicApiKey.trim(),
-      openaiApiKey: openaiApiKey.trim(),
     });
   };
 
@@ -91,40 +87,9 @@ export function ConfigScreen({ onSave, initialConfig }: ConfigScreenProps) {
             <p className="text-xs text-muted-foreground">Default: Outer Sunset community calendar</p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="anthropic" className="font-body font-semibold">Anthropic API Key *</Label>
-            <Input
-              id="anthropic"
-              type="password"
-              value={anthropicApiKey}
-              onChange={e => setAnthropicApiKey(e.target.value)}
-              placeholder="sk-ant-..."
-              className="font-body font-mono text-sm"
-            />
-            <p className="text-xs text-muted-foreground">For news content. Get one at console.anthropic.com</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="openai" className="font-body font-semibold">OpenAI API Key *</Label>
-            <Input
-              id="openai"
-              type="password"
-              value={openaiApiKey}
-              onChange={e => setOpenaiApiKey(e.target.value)}
-              placeholder="sk-..."
-              className="font-body font-mono text-sm"
-            />
-            <p className="text-xs text-muted-foreground">For coloring pages & cartoons. Get one at platform.openai.com</p>
-          </div>
-
           <Button type="submit" disabled={!isValid} className="w-full font-display text-lg h-12">
             Start Reading 📰
           </Button>
-
-          <p className="text-xs text-center text-muted-foreground">
-            Your API keys are stored locally on this device only.
-            <br />Each edition costs ~$0.05–0.15 in API usage.
-          </p>
         </form>
       </div>
     </div>
