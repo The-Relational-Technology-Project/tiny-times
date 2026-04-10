@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NewspaperData, TinyTimesConfig } from '@/lib/types';
 import { sampleData } from '@/lib/sampleData';
 import { generateNewspaper, getWeatherPrompt } from '@/lib/api';
@@ -12,6 +12,8 @@ import iconWorldEarth from '@/assets/icon-world-earth.png';
 interface NewspaperProps {
   config: TinyTimesConfig;
   onEditConfig: () => void;
+  autoGenerate?: boolean;
+  onAutoGenerateHandled?: () => void;
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -26,14 +28,15 @@ const SECTION_ICONS: Record<string, string> = {
   'story-world': iconWorldEarth,
 };
 
-export function Newspaper({ config, onEditConfig }: NewspaperProps) {
+export function Newspaper({ config, onEditConfig, autoGenerate = false, onAutoGenerateHandled }: NewspaperProps) {
   const [data, setData] = useState<NewspaperData>({ ...sampleData, childName: config.childName });
   const [step, setStep] = useState<string>('idle');
   const [hasGenerated, setHasGenerated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const autoGenerateStartedRef = useRef(false);
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     setStep('fetching-events');
     setError(null);
     try {
@@ -46,7 +49,14 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
       setError(err.message || 'Something went wrong');
       setStep('error');
     }
-  };
+  }, [config]);
+
+  useEffect(() => {
+    if (!autoGenerate || autoGenerateStartedRef.current || hasGenerated || step !== 'idle') return;
+    autoGenerateStartedRef.current = true;
+    onAutoGenerateHandled?.();
+    void handleGenerate();
+  }, [autoGenerate, hasGenerated, step, handleGenerate, onAutoGenerateHandled]);
 
   const handlePrint = () => window.print();
   const isLoading = step !== 'idle' && step !== 'done' && step !== 'error';
