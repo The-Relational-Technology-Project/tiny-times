@@ -52,7 +52,6 @@ export async function fetchNewsAndWeather(config: TinyTimesConfig): Promise<{
   world: any;
   funFact: string;
   activity: string;
-  cartoonCaption: string;
 }> {
   const { data, error } = await supabase.functions.invoke('generate-news', {
     body: {
