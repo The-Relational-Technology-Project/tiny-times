@@ -13,6 +13,11 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ['"Fredoka One"', 'cursive'],
+        body: ['Nunito', 'sans-serif'],
+        caption: ['"Playfair Display"', 'serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,6 +52,31 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        masthead: {
+          DEFAULT: "hsl(var(--masthead))",
+          foreground: "hsl(var(--masthead-foreground))",
+          accent: "hsl(var(--masthead-accent))",
+        },
+        "story-local": {
+          DEFAULT: "hsl(var(--story-local))",
+          bg: "hsl(var(--story-local-bg))",
+        },
+        "story-national": {
+          DEFAULT: "hsl(var(--story-national))",
+          bg: "hsl(var(--story-national-bg))",
+        },
+        "story-world": {
+          DEFAULT: "hsl(var(--story-world))",
+          bg: "hsl(var(--story-world-bg))",
+        },
+        weather: {
+          bg: "hsl(var(--weather-bg))",
+          foreground: "hsl(var(--weather-foreground))",
+        },
+        events: {
+          bg: "hsl(var(--events-bg))",
+          border: "hsl(var(--events-border))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -65,20 +95,12 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
