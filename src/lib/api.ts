@@ -81,18 +81,29 @@ export async function generateNewspaper(
 ): Promise<NewspaperData> {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  // Step 1: Fetch events
+  // Step 1: Fetch events + select illustration in parallel
   onStep('fetching-events');
-  const events = await fetchEvents(config.eventsApiUrl);
+  const [events, coloringImage] = await Promise.all([
+    fetchEvents(config.eventsApiUrl),
+    selectIllustration('coloring', []).catch(() => null),
+  ]);
 
   // Step 2: Fetch news + weather via edge function
   onStep('fetching-news');
   const news = await fetchNewsAndWeather(config);
 
-  // Step 3: Select illustrations from library
+  // Step 3: If we got news, try to pick a more relevant illustration
   onStep('selecting-illustrations');
-  const keywords = extractKeywords([news.local, news.national, news.world]);
-  const coloringImage = await selectIllustration('coloring', keywords);
+  let finalImage = coloringImage;
+  try {
+    const keywords = extractKeywords([news.local, news.national, news.world]);
+    if (keywords.length > 0) {
+      const betterMatch = await selectIllustration('coloring', keywords);
+      if (betterMatch) finalImage = betterMatch;
+    }
+  } catch {
+    // Keep the early pick
+  }
 
   return {
     childName: config.childName,
@@ -106,6 +117,6 @@ export async function generateNewspaper(
     events: events.length > 0 ? events : [
       { time: 'All day', name: 'No events listed today', place: config.neighborhood }
     ],
-    coloringImage: coloringImage || undefined,
+    coloringImage: finalImage || undefined,
   };
 }
