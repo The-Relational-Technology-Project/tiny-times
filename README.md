@@ -26,8 +26,8 @@ A daily kid-friendly newspaper generator that creates a printable, two-page news
 
 ## Credits
 
-**The Tiny Times** was created by **Dan Fuchs**, a dad in the Sunset in San Francisco, who had the original idea and wrote the original code. Built with [Lovable](https://lovable.dev).
+**The Tiny Times** was created by **Dan Fuchs**, a dad in the Sunset in San Francisco, who had the original idea and wrote the original code.
 
 ## License
 
-MIT
+MIT License
