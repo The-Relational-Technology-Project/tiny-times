@@ -33,12 +33,12 @@ export async function fetchEvents(apiUrl: string): Promise<EventItem[]> {
     const todayStart = `${yyyy}-${mm}-${dd}T00:00:00`;
     const todayEnd = `${yyyy}-${mm}-${dd}T23:59:59`;
 
-    const url = `${apiUrl}?start_after=${todayStart}&start_before=${todayEnd}&limit=3`;
+    const url = `${apiUrl}?start_after=${todayStart}&start_before=${todayEnd}&limit=4`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Events API failed');
 
     const data = await res.json();
-    return (data.events || []).slice(0, 3).map((e: any) => ({
+    return (data.events || []).slice(0, 4).map((e: any) => ({
       time: new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
       name: e.name,
       place: e.location?.name || 'TBD',
