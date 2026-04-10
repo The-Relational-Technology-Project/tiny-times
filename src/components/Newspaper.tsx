@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NewspaperData, TinyTimesConfig, GenerationStep } from '@/lib/types';
+import { NewspaperData, TinyTimesConfig } from '@/lib/types';
 import { sampleData } from '@/lib/sampleData';
 import { generateNewspaper, getWeatherPrompt } from '@/lib/api';
 import { Button } from '@/components/ui/button';
