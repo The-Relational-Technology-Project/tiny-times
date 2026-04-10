@@ -73,7 +73,6 @@ export async function fetchNewsAndWeather(config: TinyTimesConfig): Promise<{
     world: data.world,
     funFact: data.funFact,
     activity: data.activity,
-    cartoonCaption: data.cartoon_caption || data.cartoonCaption || '',
   };
 }
 
