@@ -3,7 +3,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,9 +12,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (!ANTHROPIC_API_KEY) {
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }),
+        JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -33,7 +34,7 @@ Deno.serve(async (req) => {
     const prompt = `You are writing a morning newspaper for a 3-year-old child in ${city}.
 Use very simple words and short sentences. Today is ${today}.
 
-Search the web for:
+Search the web or use your training data for:
 1. Today's weather in ${city}: Fahrenheit temp + one-word description.
 2. One upbeat local ${city} story from the last 24 hours.
 3. One upbeat US national story from the last 24 hours.
@@ -53,40 +54,52 @@ Return ONLY valid JSON. No markdown. No code fences.
   "activity": "one activity suggestion tied to today's weather or news"
 }`;
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(GATEWAY_URL, {
       method: 'POST',
       headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'content-type': 'application/json',
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1200,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: prompt }],
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant that writes kid-friendly news. Always respond with valid JSON only.' },
+          { role: 'user', content: prompt },
+        ],
       }),
     });
 
     if (!res.ok) {
       const errText = await res.text();
+      console.error('AI gateway error:', res.status, errText);
+
+      if (res.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (res.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'AI credits exhausted. Please add funds in Settings > Workspace > Usage.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: `Anthropic API error: ${res.status}`, details: errText }),
+        JSON.stringify({ error: `AI gateway error: ${res.status}`, details: errText }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const data = await res.json();
 
-    let jsonStr = '';
-    for (const block of data.content || []) {
-      if (block.type === 'text') {
-        jsonStr += block.text;
-      }
-    }
+    // Extract text from the response
+    let jsonStr = data.choices?.[0]?.message?.content || '';
 
     const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('Could not parse news response:', jsonStr);
       return new Response(
         JSON.stringify({ error: 'Could not parse news response' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -100,6 +113,7 @@ Return ONLY valid JSON. No markdown. No code fences.
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
+    console.error('generate-news error:', err);
     return new Response(
       JSON.stringify({ error: err.message || 'Internal error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
