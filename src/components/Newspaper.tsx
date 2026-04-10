@@ -3,7 +3,8 @@ import { NewspaperData, TinyTimesConfig } from '@/lib/types';
 import { sampleData } from '@/lib/sampleData';
 import { generateNewspaper, getWeatherPrompt } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Settings, Printer, RefreshCw, Loader2, Star, Lightbulb, Calendar } from 'lucide-react';
+import { Settings, Printer, RefreshCw, Loader2, Star, Lightbulb, Calendar, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface NewspaperProps {
   config: TinyTimesConfig;
@@ -13,7 +14,7 @@ interface NewspaperProps {
 const STEP_LABELS: Record<string, string> = {
   'fetching-events': '📅 Finding neighborhood events…',
   'fetching-news': '📰 Gathering today\'s news…',
-  'generating-images': '🎨 Drawing your coloring page & cartoon…',
+  'selecting-illustrations': '🎨 Picking today\'s illustrations…',
 };
 
 export function Newspaper({ config, onEditConfig }: NewspaperProps) {
@@ -21,6 +22,7 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
   const [step, setStep] = useState<string>('idle');
   const [hasGenerated, setHasGenerated] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleGenerate = async () => {
     setStep('fetching-events');
@@ -71,6 +73,10 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
             <Printer className="h-4 w-4" />
             Print
           </Button>
+          <Button onClick={() => navigate('/library')} variant="outline" size="sm" className="font-body">
+            <BookOpen className="h-4 w-4" />
+            Library
+          </Button>
           <Button onClick={onEditConfig} variant="ghost" size="icon" className="h-9 w-9">
             <Settings className="h-4 w-4" />
           </Button>
@@ -119,23 +125,11 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
           </span>
         </div>
 
-        {/* Main content: 3 stories + coloring page */}
+        {/* Main content: 3 stories */}
         <div className="grid grid-cols-3 gap-2 mt-2">
-          <StoryBlock
-            category={`${config.city} News`}
-            story={data.local}
-            colorVar="story-local"
-          />
-          <StoryBlock
-            category="Our Country"
-            story={data.national}
-            colorVar="story-national"
-          />
-          <StoryBlock
-            category="Our World"
-            story={data.world}
-            colorVar="story-world"
-          />
+          <StoryBlock category={`${config.city} News`} story={data.local} colorVar="story-local" />
+          <StoryBlock category="Our Country" story={data.national} colorVar="story-national" />
+          <StoryBlock category="Our World" story={data.world} colorVar="story-world" />
         </div>
 
         {/* Middle row: Coloring + Events + Fun Fact + Activity */}
@@ -145,8 +139,8 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
             <div className="text-[9px] font-display text-center py-0.5" style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
               ✏️ Color Me In!
             </div>
-            {data.coloringImageUrl ? (
-              <img src={data.coloringImageUrl} alt="Coloring page" className="w-full aspect-square object-contain" />
+            {data.coloringImage?.url ? (
+              <img src={data.coloringImage.url} alt="Coloring page" className="w-full aspect-square object-contain" />
             ) : (
               <div className="w-full aspect-square flex items-center justify-center bg-muted/30">
                 <span className="text-3xl">🖍️</span>
@@ -199,8 +193,8 @@ export function Newspaper({ config, onEditConfig }: NewspaperProps) {
           <div className="text-[9px] font-display text-center py-0.5" style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
             Today's Cartoon
           </div>
-          {data.cartoonImageUrl ? (
-            <img src={data.cartoonImageUrl} alt="Daily cartoon" className="w-full max-h-[2in] object-contain" />
+          {data.cartoonImage?.url ? (
+            <img src={data.cartoonImage.url} alt="Daily cartoon" className="w-full max-h-[2in] object-contain" />
           ) : (
             <div className="w-full h-[1.5in] flex items-center justify-center bg-muted/30">
               <span className="text-3xl">🐻</span>
