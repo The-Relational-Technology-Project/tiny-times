@@ -18,7 +18,7 @@ const STEP_LABELS: Record<string, string> = {
 
 export function Newspaper({ config, onEditConfig }: NewspaperProps) {
   const [data, setData] = useState<NewspaperData>({ ...sampleData, childName: config.childName });
-  const [step, setStep] = useState<GenerationStep>('idle');
+  const [step, setStep] = useState<string>('idle');
   const [hasGenerated, setHasGenerated] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
