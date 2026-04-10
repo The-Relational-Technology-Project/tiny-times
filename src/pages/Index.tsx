@@ -22,16 +22,25 @@ function saveConfig(config: TinyTimesConfig) {
 export default function Index() {
   const [config, setConfig] = useState<TinyTimesConfig | null>(loadConfig);
   const [showConfig, setShowConfig] = useState(!config);
+  const [autoGenerate, setAutoGenerate] = useState(false);
 
   const handleSave = (c: TinyTimesConfig) => {
     saveConfig(c);
     setConfig(c);
     setShowConfig(false);
+    setAutoGenerate(true);
   };
 
   if (showConfig || !config) {
     return <ConfigScreen onSave={handleSave} initialConfig={config} />;
   }
 
-  return <Newspaper config={config} onEditConfig={() => setShowConfig(true)} />;
+  return (
+    <Newspaper
+      config={config}
+      onEditConfig={() => setShowConfig(true)}
+      autoGenerate={autoGenerate}
+      onAutoGenerateHandled={() => setAutoGenerate(false)}
+    />
+  );
 }
