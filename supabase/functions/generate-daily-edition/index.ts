@@ -14,9 +14,9 @@ const CITY = 'San Francisco';
 const NEIGHBORHOOD = 'Outer Sunset';
 
 const RSS_FEEDS = {
-  local: 'https://www.sfgate.com/bayarea/feed/Bay-Area-News-702.php',
-  national: 'https://news.google.com/rss/search?q=good+news+USA&hl=en-US',
-  world: 'https://news.google.com/rss/search?q=good+news+world&hl=en-US',
+  local: 'https://missionlocal.org/feed/',
+  national: 'https://www.goodnewsnetwork.org/feed/',
+  world: 'https://www.positive.news/feed/',
 };
 
 const WEATHER_EMOJIS: Record<string, string> = {
