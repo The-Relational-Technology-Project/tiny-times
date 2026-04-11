@@ -1,65 +1,54 @@
 
 
-## Plan: Pre-generate daily edition, simplify to static front page
+## Plan: RSS feeds + Lovable AI for real news
 
 ### Summary
+Replace the Anthropic Claude call with a two-step pipeline: (1) fetch real headlines from public RSS feeds, (2) pass them to Lovable AI (Gemini) for kid-friendly selection and rewriting. This eliminates hallucinated stories, removes the Anthropic API dependency, and costs nothing extra.
 
-Stop generating per-visitor. Instead, generate the newspaper once daily at 1am PT via a scheduled edge function, store the result in a `daily_editions` table, and have the front page simply load today's edition. The greeting becomes inline-editable ("Good Morning, Neighbor!" by default). Nav simplifies to Print + Settings.
+### How it works
 
-### Database
+```text
+RSS Feeds (free, real headlines)
+  → Parse XML, extract titles + links + descriptions
+  → Feed into Lovable AI (gemini-3-flash-preview)
+  → AI selects 1 upbeat story per category, rewrites for toddlers
+  → Returns structured JSON (same shape as today)
+```
 
-**New table: `daily_editions`**
-- `id` (uuid, PK)
-- `edition_date` (date, unique) — the date this edition is for
-- `data` (jsonb) — the full `NewspaperData` payload (weather, stories, events, coloring image URL, etc.)
-- `created_at` (timestamptz, default now())
-- RLS: public SELECT (everyone reads today's edition), no public INSERT/UPDATE/DELETE
+### RSS Sources
 
-### Edge Function: `generate-daily-edition`
+| Level | Feed URL | Why |
+|-------|----------|-----|
+| Local SF | `https://www.sfgate.com/bayarea/feed/Bay-Area-News-702.php` | Free, updated frequently, SF-focused |
+| National | `https://news.google.com/rss/search?q=good+news+USA&hl=en-US` | Google News aggregation filtered for positive US stories |
+| World | `https://news.google.com/rss/search?q=good+news+world&hl=en-US` | Same, global scope |
 
-A new edge function that:
-1. Fetches events from the outersunset.today API (hardcoded URL)
-2. Calls the existing `generate-news` function logic (inline, not via HTTP) for city="San Francisco"
-3. Selects a coloring illustration (same logic as current `selectIllustration`, but done server-side — query the `illustrations` table via Supabase client)
-4. Upserts the result into `daily_editions` for today's date
-5. Uses `childName: "Neighbor"` as the default
+### Edge Function Changes (`generate-daily-edition/index.ts`)
 
-### Scheduled Cron Job
+1. **Remove** Anthropic API key, URL, and Claude call
+2. **Add** `fetchRSSHeadlines()` — fetches all 3 RSS feeds in parallel, parses XML (simple regex or DOMParser), extracts title + link + description for the ~10 most recent items per feed
+3. **Update** `fetchNews()` to:
+   - Call `fetchRSSHeadlines()` first
+   - Pass the real headlines into Lovable AI Gateway (`gemini-3-flash-preview`) with a prompt like: "Here are real news headlines. Pick 1 upbeat, kid-safe story from each category. Rewrite headline (max 7 words) and body (2 simple sentences) for a 3-year-old. Include the source URL. Also provide weather, funFact, and activity."
+   - Parse the structured JSON response (same schema as current)
+4. **Fallback**: If RSS fetch fails, let AI generate stories but mark them as "inspired by real events"
 
-Set up `pg_cron` + `pg_net` to call `generate-daily-edition` at 1am PT (9:00 UTC) daily.
-
-### Frontend Changes
-
-**`Index.tsx`** — becomes a simple loader:
-- On mount, fetch today's edition from `daily_editions` where `edition_date = today`
-- If found, render the `Newspaper` component with that data
-- If not found, show a friendly "Today's edition is being prepared" message
-- No more `ConfigScreen` on first visit; settings accessed via gear icon
-
-**`Newspaper.tsx`** — simplify:
-- Remove Generate button, loading states, step indicators
-- Remove Library button
-- Keep Print and Settings buttons only
-- The greeting ("Good Morning, Neighbor!") becomes an inline-editable text field — click to type a name, stored in localStorage, defaults to "Neighbor"
-- Data comes from props (pre-loaded from DB), no more client-side generation
-
-**`ConfigScreen.tsx`** — keep as-is but accessed only from Settings gear icon. The `childName` field here can sync with the inline greeting name via localStorage.
-
-**Remove/simplify:**
-- `src/lib/api.ts` — remove `generateNewspaper` and `fetchNewsAndWeather` (generation moves server-side). Keep `getWeatherEmoji`/`getWeatherPrompt` helpers.
-- `src/pages/Library.tsx` — remove from routes (managed in backend only)
-- Remove Library route from `App.tsx`
+### What stays the same
+- Events fetching (outersunset.today API) — unchanged
+- Coloring image selection — unchanged  
+- Daily editions table + cron job — unchanged
+- Frontend — unchanged (same data shape)
+- Weather — still AI-generated (reliable enough, verifiable)
 
 ### File Changes
 
-| File | Action |
+| File | Change |
 |------|--------|
-| `supabase/migrations/` | New migration: create `daily_editions` table with RLS |
-| `supabase/functions/generate-daily-edition/index.ts` | New edge function combining news gen + events + illustration selection |
-| `src/pages/Index.tsx` | Rewrite: fetch today's edition from DB, render Newspaper |
-| `src/components/Newspaper.tsx` | Simplify: remove generate/library, add inline-editable greeting |
-| `src/lib/api.ts` | Strip to helpers only; remove generation logic |
-| `src/App.tsx` | Remove `/library` route |
-| `src/pages/Library.tsx` | Delete |
-| Cron job | Insert via SQL (pg_cron schedule) |
+| `supabase/functions/generate-daily-edition/index.ts` | Remove Anthropic, add RSS fetching, switch to Lovable AI Gateway |
+| `.lovable/memory/features/daily-edition.md` | Update to reflect RSS + Lovable AI pipeline |
+
+### Cost impact
+- Removes Anthropic API cost entirely
+- Lovable AI (Gemini flash) is included/cheap
+- RSS feeds are free
 
