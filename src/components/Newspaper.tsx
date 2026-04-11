@@ -60,9 +60,6 @@ export function Newspaper({ data }: NewspaperProps) {
             <Info className="h-4 w-4" />
             About
           </Button>
-          <Button onClick={() => navigate('/')} variant="ghost" size="icon" className="h-9 w-9">
-            <Settings className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
