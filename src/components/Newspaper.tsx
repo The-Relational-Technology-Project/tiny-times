@@ -76,9 +76,6 @@ export function Newspaper({ data }: NewspaperProps) {
 
       {/* Mobile: scrollable/zoomable PDF-like container; Desktop: normal flow */}
       <div className="sm:contents">
-        <div className="sm:hidden no-print px-3 py-2 text-center text-xs text-muted-foreground font-body">
-          Pinch to zoom · Scroll to read
-        </div>
         <div className="newspaper-mobile-wrap sm:contents overflow-x-auto">
 
       {/* ===== PAGE 1: Front ===== */}
