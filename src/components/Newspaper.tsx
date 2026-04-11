@@ -1,26 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { NewspaperData, TinyTimesConfig } from '@/lib/types';
-import { sampleData } from '@/lib/sampleData';
-import { generateNewspaper, getWeatherPrompt } from '@/lib/api';
+import { useState, useEffect } from 'react';
+import { NewspaperData } from '@/lib/types';
+import { getWeatherPrompt } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Settings, Printer, RefreshCw, Loader2, Star, Lightbulb, Calendar, BookOpen } from 'lucide-react';
+import { Printer, Settings, Star, Lightbulb, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import iconCitySf from '@/assets/icon-city-sf.png';
 import iconCountryUsa from '@/assets/icon-country-usa.png';
 import iconWorldEarth from '@/assets/icon-world-earth.png';
 
 interface NewspaperProps {
-  config: TinyTimesConfig;
-  onEditConfig: () => void;
-  autoGenerate?: boolean;
-  onAutoGenerateHandled?: () => void;
+  data: NewspaperData;
 }
-
-const STEP_LABELS: Record<string, string> = {
-  'fetching-events': '📅 Finding neighborhood events…',
-  'fetching-news': '📰 Gathering today\'s news…',
-  'selecting-illustrations': '🎨 Picking today\'s illustrations…',
-};
 
 const SECTION_ICONS: Record<string, string> = {
   'story-local': iconCitySf,
@@ -28,81 +18,49 @@ const SECTION_ICONS: Record<string, string> = {
   'story-world': iconWorldEarth,
 };
 
-export function Newspaper({ config, onEditConfig, autoGenerate = false, onAutoGenerateHandled }: NewspaperProps) {
-  const [data, setData] = useState<NewspaperData>({ ...sampleData, childName: config.childName });
-  const [step, setStep] = useState<string>('idle');
-  const [hasGenerated, setHasGenerated] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const autoGenerateStartedRef = useRef(false);
+const NAME_KEY = 'tiny-times-name';
 
-  const handleGenerate = useCallback(async () => {
-    setStep('fetching-events');
-    setError(null);
-    try {
-      const result = await generateNewspaper(config, setStep);
-      setData(result);
-      setHasGenerated(true);
-      setStep('done');
-    } catch (err: any) {
-      console.error('Generation failed:', err);
-      setError(err.message || 'Something went wrong');
-      setStep('error');
-    }
-  }, [config]);
+function loadName(): string {
+  return localStorage.getItem(NAME_KEY) || 'Neighbor';
+}
+
+function saveName(name: string) {
+  localStorage.setItem(NAME_KEY, name);
+}
+
+export function Newspaper({ data }: NewspaperProps) {
+  const [name, setName] = useState(loadName);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!autoGenerate || autoGenerateStartedRef.current || hasGenerated || step !== 'idle') return;
-    autoGenerateStartedRef.current = true;
-    onAutoGenerateHandled?.();
-    void handleGenerate();
-  }, [autoGenerate, hasGenerated, step, handleGenerate, onAutoGenerateHandled]);
+    saveName(name);
+  }, [name]);
 
   const handlePrint = () => window.print();
-  const isLoading = step !== 'idle' && step !== 'done' && step !== 'error';
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+  };
+
+  const handleNameBlur = () => {
+    if (!name.trim()) setName('Neighbor');
+  };
 
   return (
     <div className="min-h-screen bg-muted pb-8 print:bg-white print:pb-0 print:min-h-0">
       {/* Controls bar */}
       <div className="no-print sticky top-0 z-50 bg-popover/95 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
+        <h1 className="font-display text-xl text-primary">The Tiny Times</h1>
         <div className="flex items-center gap-2">
-          <h1 className="font-display text-xl text-primary">The Tiny Times</h1>
-          {!hasGenerated && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Preview</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {isLoading && (
-            <span className="text-sm text-muted-foreground font-body flex items-center gap-1.5">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              {STEP_LABELS[step] || 'Working…'}
-            </span>
-          )}
-          <Button onClick={handleGenerate} disabled={isLoading} size="sm" className="font-body font-semibold">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Generate
-          </Button>
-          <Button onClick={handlePrint} variant="outline" size="sm" className="font-body">
+          <Button onClick={handlePrint} size="sm" className="font-body font-semibold">
             <Printer className="h-4 w-4" />
             Print
           </Button>
-          <Button onClick={() => navigate('/library')} variant="outline" size="sm" className="font-body">
-            <BookOpen className="h-4 w-4" />
-            Library
-          </Button>
-          <Button onClick={onEditConfig} variant="ghost" size="icon" className="h-9 w-9">
+          <Button onClick={() => navigate('/')} variant="ghost" size="icon" className="h-9 w-9">
             <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
-
-      {error && (
-        <div className="no-print max-w-[8.5in] mx-auto mt-4 px-4">
-          <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm font-body">
-            ⚠️ {error}
-          </div>
-        </div>
-      )}
 
       {/* ===== PAGE 1: Front ===== */}
       <div className="newspaper-page newspaper-page-front mt-6 p-[0.4in]" style={{ background: 'white' }}>
@@ -119,14 +77,25 @@ export function Newspaper({ config, onEditConfig, autoGenerate = false, onAutoGe
             The Tiny Times
           </h1>
           <p className="text-sm font-display tracking-wide uppercase mt-1" style={{ color: 'hsl(var(--masthead))' }}>
-            ✦ The {config.neighborhood} Edition ✦
+            ✦ The Outer Sunset Edition ✦
           </p>
           <div className="flex items-center justify-center gap-3 mt-1.5 text-sm font-body text-muted-foreground">
             <span>{data.date}</span>
           </div>
-          <p className="font-display text-[28px] mt-2 leading-tight" style={{ color: 'hsl(var(--masthead))' }}>
-            Good Morning, {data.childName}! ☀️
-          </p>
+          {/* Inline-editable greeting */}
+          <div className="font-display text-[28px] mt-2 leading-tight flex items-center justify-center gap-2" style={{ color: 'hsl(var(--masthead))' }}>
+            <span>Good Morning,</span>
+            <input
+              type="text"
+              value={name}
+              onChange={handleNameChange}
+              onBlur={handleNameBlur}
+              className="font-display text-[28px] leading-tight bg-transparent border-b-2 border-dashed border-primary/30 focus:border-primary outline-none text-center print:border-none"
+              style={{ color: 'hsl(var(--masthead))', width: `${Math.max(name.length, 3) + 1}ch` }}
+            />
+            <span>☀️</span>
+          </div>
+          <p className="no-print text-[10px] text-muted-foreground mt-1 font-body">Click the name above to personalize</p>
           <div className="h-[2px] mt-3 bg-foreground/15" />
         </div>
 
@@ -141,9 +110,9 @@ export function Newspaper({ config, onEditConfig, autoGenerate = false, onAutoGe
           </span>
         </div>
 
-        {/* Stories with section icons */}
+        {/* Stories */}
         <div className="grid grid-cols-2 gap-5 mb-3">
-          <StoryBlock category={`${config.city} News`} story={data.local} colorVar="story-local" />
+          <StoryBlock category="San Francisco News" story={data.local} colorVar="story-local" />
           <StoryBlock category="Our Country" story={data.national} colorVar="story-national" />
         </div>
         <div className="mb-3">
@@ -157,7 +126,7 @@ export function Newspaper({ config, onEditConfig, autoGenerate = false, onAutoGe
             <div className="flex items-center gap-1.5 mb-1.5">
               <Calendar className="h-4 w-4" style={{ color: 'hsl(var(--masthead))' }} />
               <span className="font-display text-[13px]" style={{ color: 'hsl(var(--masthead))' }}>
-                {config.neighborhood} Today
+                Outer Sunset Today
               </span>
             </div>
             <div className="space-y-1.5">
@@ -193,12 +162,12 @@ export function Newspaper({ config, onEditConfig, autoGenerate = false, onAutoGe
         {/* Footer */}
         <div className="text-center mt-3 pt-1.5 border-t border-foreground/10">
           <p className="text-[9px] font-body text-muted-foreground">
-            The Tiny Times · {config.city} · Events: outersunset.today (CC BY 4.0)
+            The Tiny Times · San Francisco · Events: outersunset.today (CC BY 4.0)
           </p>
         </div>
       </div>
 
-      {/* ===== PAGE 2: Coloring Page (Back) ===== */}
+      {/* ===== PAGE 2: Coloring Page ===== */}
       <div className="newspaper-page newspaper-page-back mt-6 p-[0.4in] flex flex-col" style={{ background: 'white' }}>
         <div className="text-center mb-4">
           <h2 className="font-display text-[36px] leading-none" style={{ color: 'hsl(var(--masthead))' }}>
@@ -222,7 +191,7 @@ export function Newspaper({ config, onEditConfig, autoGenerate = false, onAutoGe
 
         <div className="text-center mt-4 pt-2 border-t border-foreground/10">
           <p className="text-[9px] font-body text-muted-foreground">
-            The Tiny Times · {config.city} · Made with ❤️ for {data.childName}
+            The Tiny Times · San Francisco · Made with ❤️ for {name}
           </p>
         </div>
       </div>
