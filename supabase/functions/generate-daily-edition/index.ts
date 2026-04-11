@@ -77,16 +77,18 @@ Return ONLY valid JSON. No markdown. No code fences.
   "activity": "one activity suggestion tied to today's weather or news"
 }`;
 
-  const res = await fetch(GATEWAY_URL, {
+  const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: 'You are a helpful assistant that writes kid-friendly news. Always respond with valid JSON only.',
       messages: [
-        { role: 'system', content: 'You are a helpful assistant that writes kid-friendly news. Always respond with valid JSON only.' },
         { role: 'user', content: prompt },
       ],
     }),
@@ -94,11 +96,11 @@ Return ONLY valid JSON. No markdown. No code fences.
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`AI gateway error ${res.status}: ${errText}`);
+    throw new Error(`Anthropic API error ${res.status}: ${errText}`);
   }
 
   const data = await res.json();
-  const jsonStr = data.choices?.[0]?.message?.content || '';
+  const jsonStr = data.content?.[0]?.text || '';
   const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('Could not parse news response');
   return JSON.parse(jsonMatch[0]);
