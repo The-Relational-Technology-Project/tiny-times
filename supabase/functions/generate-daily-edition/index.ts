@@ -5,10 +5,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const EVENTS_API_URL = 'https://nawdvulumebqbxmkedzw.supabase.co/functions/v1/get-public-events';
 const CITY = 'San Francisco';
 const NEIGHBORHOOD = 'Outer Sunset';
@@ -38,7 +38,7 @@ async function fetchEvents(): Promise<any[]> {
 
     const data = await res.json();
     return (data.events || []).slice(0, 4).map((e: any) => ({
-      time: new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+      time: new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' }),
       name: e.name,
       place: e.location?.name || 'TBD',
     }));
