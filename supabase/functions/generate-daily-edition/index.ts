@@ -5,10 +5,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const EVENTS_API_URL = 'https://nawdvulumebqbxmkedzw.supabase.co/functions/v1/get-public-events';
 const CITY = 'San Francisco';
 const NEIGHBORHOOD = 'Outer Sunset';
@@ -38,7 +38,7 @@ async function fetchEvents(): Promise<any[]> {
 
     const data = await res.json();
     return (data.events || []).slice(0, 4).map((e: any) => ({
-      time: new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+      time: new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' }),
       name: e.name,
       place: e.location?.name || 'TBD',
     }));
@@ -77,16 +77,18 @@ Return ONLY valid JSON. No markdown. No code fences.
   "activity": "one activity suggestion tied to today's weather or news"
 }`;
 
-  const res = await fetch(GATEWAY_URL, {
+  const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: 'You are a helpful assistant that writes kid-friendly news. Always respond with valid JSON only.',
       messages: [
-        { role: 'system', content: 'You are a helpful assistant that writes kid-friendly news. Always respond with valid JSON only.' },
         { role: 'user', content: prompt },
       ],
     }),
@@ -94,11 +96,11 @@ Return ONLY valid JSON. No markdown. No code fences.
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`AI gateway error ${res.status}: ${errText}`);
+    throw new Error(`Anthropic API error ${res.status}: ${errText}`);
   }
 
   const data = await res.json();
-  const jsonStr = data.choices?.[0]?.message?.content || '';
+  const jsonStr = data.content?.[0]?.text || '';
   const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('Could not parse news response');
   return JSON.parse(jsonMatch[0]);
