@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NewspaperData } from '@/lib/types';
 import { getWeatherPrompt } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Printer, Settings, Info, Star, Lightbulb, Calendar } from 'lucide-react';
+import { Printer, Info, Star, Lightbulb, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import iconCitySf from '@/assets/icon-city-sf.png';
 import iconCountryUsa from '@/assets/icon-country-usa.png';
