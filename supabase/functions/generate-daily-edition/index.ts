@@ -5,13 +5,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
+const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const EVENTS_API_URL = 'https://nawdvulumebqbxmkedzw.supabase.co/functions/v1/get-public-events';
 const CITY = 'San Francisco';
 const NEIGHBORHOOD = 'Outer Sunset';
+
+const RSS_FEEDS = {
+  local: 'https://www.sfgate.com/bayarea/feed/Bay-Area-News-702.php',
+  national: 'https://news.google.com/rss/search?q=good+news+USA&hl=en-US',
+  world: 'https://news.google.com/rss/search?q=good+news+world&hl=en-US',
+};
 
 const WEATHER_EMOJIS: Record<string, string> = {
   sun: '☀️', cloud: '☁️', rain: '🌧️', snow: '❄️', fog: '🌫️', wind: '💨',
@@ -24,7 +30,6 @@ function getWeatherEmoji(key: string): string {
 async function fetchEvents(): Promise<any[]> {
   try {
     const now = new Date();
-    // Use PT timezone for date calculation
     const ptDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     const yyyy = ptDate.getFullYear();
     const mm = String(ptDate.getMonth() + 1).padStart(2, '0');
@@ -48,47 +53,96 @@ async function fetchEvents(): Promise<any[]> {
   }
 }
 
-async function fetchNews(): Promise<any> {
+interface RSSItem {
+  title: string;
+  link: string;
+  description: string;
+}
+
+async function fetchRSSFeed(url: string): Promise<RSSItem[]> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`);
+    const xml = await res.text();
+
+    const items: RSSItem[] = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null && items.length < 10) {
+      const itemXml = match[1];
+      const title = itemXml.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || '';
+      const link = itemXml.match(/<link>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/link>/)?.[1] || '';
+      const description = itemXml.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/)?.[1] || '';
+      if (title) {
+        items.push({ title: title.trim(), link: link.trim(), description: description.replace(/<[^>]*>/g, '').trim().slice(0, 300) });
+      }
+    }
+    return items;
+  } catch (err) {
+    console.error(`RSS fetch error for ${url}:`, err);
+    return [];
+  }
+}
+
+async function fetchRSSHeadlines(): Promise<{ local: RSSItem[]; national: RSSItem[]; world: RSSItem[] }> {
+  const [local, national, world] = await Promise.all([
+    fetchRSSFeed(RSS_FEEDS.local),
+    fetchRSSFeed(RSS_FEEDS.national),
+    fetchRSSFeed(RSS_FEEDS.world),
+  ]);
+  return { local, national, world };
+}
+
+function formatHeadlinesForPrompt(headlines: { local: RSSItem[]; national: RSSItem[]; world: RSSItem[] }): string {
+  const format = (items: RSSItem[]) =>
+    items.map((item, i) => `${i + 1}. "${item.title}" — ${item.description} (${item.link})`).join('\n');
+
+  return `LOCAL SF NEWS:\n${format(headlines.local) || 'No headlines available'}\n\nNATIONAL US NEWS:\n${format(headlines.national) || 'No headlines available'}\n\nWORLD NEWS:\n${format(headlines.world) || 'No headlines available'}`;
+}
+
+async function fetchNews(headlines: { local: RSSItem[]; national: RSSItem[]; world: RSSItem[] }): Promise<any> {
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     timeZone: 'America/Los_Angeles',
   });
 
+  const hasHeadlines = headlines.local.length > 0 || headlines.national.length > 0 || headlines.world.length > 0;
+  const headlinesContext = hasHeadlines
+    ? `Here are today's real news headlines. Pick 1 upbeat, positive, kid-safe story from each category. Rewrite the headline and body for a 3-year-old. Use the original article URL as the "source" field.\n\n${formatHeadlinesForPrompt(headlines)}`
+    : 'No RSS headlines were available. Generate upbeat, positive stories inspired by real events. Mark source as "Inspired by real events".';
+
   const prompt = `You are writing a morning newspaper for a 3-year-old child in ${CITY}.
-Use very simple words and short sentences. Today is ${today}.
+Today is ${today}.
 
-Search the web or use your training data for:
-1. Today's weather in ${CITY}: Fahrenheit temp + one-word description.
-2. One upbeat local ${CITY} story from the last 24 hours.
-3. One upbeat US national story from the last 24 hours.
-4. One upbeat world/global story from the last 24 hours.
+${headlinesContext}
 
-For each story: max 2 short sentences a toddler could follow.
-Headlines: max 7 words, active and fun.
-Only positive, wonder-filled stories. Nothing scary.
+RULES:
+- Only pick POSITIVE, wholesome, wonder-filled stories. Nothing scary, violent, political, or sad.
+- Headlines: max 7 words, active and fun.
+- Body: max 2 short sentences a toddler could follow. Use very simple words.
+- Include a fun question for each story to spark conversation.
+- Also provide today's weather for ${CITY} (Fahrenheit), a fun fact, and an activity suggestion.
 
 Return ONLY valid JSON. No markdown. No code fences.
 {
   "weather": {"emoji": "sun/cloud/rain/snow/fog/wind", "desc": "one word", "temp": "number"},
-  "local": {"headline": "", "body": "", "question": "", "source": ""},
-  "national": {"headline": "", "body": "", "question": "", "source": ""},
-  "world": {"headline": "", "body": "", "question": "", "source": ""},
+  "local": {"headline": "", "body": "", "question": "", "source": "URL"},
+  "national": {"headline": "", "body": "", "question": "", "source": "URL"},
+  "world": {"headline": "", "body": "", "question": "", "source": "URL"},
   "funFact": "one fun sentence",
   "activity": "one activity suggestion tied to today's weather or news"
 }`;
 
-  const res = await fetch(ANTHROPIC_URL, {
+  const res = await fetch(AI_GATEWAY_URL, {
     method: 'POST',
     headers: {
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: 'You are a helpful assistant that writes kid-friendly news. Always respond with valid JSON only.',
+      model: 'google/gemini-3-flash-preview',
       messages: [
+        { role: 'system', content: 'You are a helpful assistant that writes kid-friendly news based on real headlines. Always respond with valid JSON only. Only select positive, upbeat stories appropriate for young children.' },
         { role: 'user', content: prompt },
       ],
     }),
@@ -96,11 +150,11 @@ Return ONLY valid JSON. No markdown. No code fences.
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Anthropic API error ${res.status}: ${errText}`);
+    throw new Error(`AI Gateway error ${res.status}: ${errText}`);
   }
 
   const data = await res.json();
-  const jsonStr = data.content?.[0]?.text || '';
+  const jsonStr = data.choices?.[0]?.message?.content || '';
   const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('Could not parse news response');
   return JSON.parse(jsonMatch[0]);
@@ -118,15 +172,13 @@ async function selectColoringImage(supabase: any): Promise<any | null> {
     return null;
   }
 
-  const selected = illustrations[0]; // Least recently used
+  const selected = illustrations[0];
 
-  // Update last_used
   await supabase
     .from('illustrations')
     .update({ last_used: new Date().toISOString() })
     .eq('id', selected.id);
 
-  // Build public URL
   const { data: urlData } = supabase.storage
     .from('illustrations')
     .getPublicUrl(selected.storage_path);
@@ -147,9 +199,8 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get today's date in PT
     const now = new Date();
-    const ptDateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD
+    const ptDateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
     const displayDate = now.toLocaleDateString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       timeZone: 'America/Los_Angeles',
@@ -157,12 +208,17 @@ Deno.serve(async (req) => {
 
     console.log(`Generating edition for ${ptDateStr}...`);
 
-    // Fetch events, news, and coloring image in parallel
-    const [events, news, coloringImage] = await Promise.all([
+    // Fetch RSS headlines, events, and coloring image in parallel
+    const [headlines, events, coloringImage] = await Promise.all([
+      fetchRSSHeadlines(),
       fetchEvents(),
-      fetchNews(),
       selectColoringImage(supabase),
     ]);
+
+    console.log(`RSS headlines fetched — local: ${headlines.local.length}, national: ${headlines.national.length}, world: ${headlines.world.length}`);
+
+    // Pass real headlines to AI for kid-friendly rewriting
+    const news = await fetchNews(headlines);
 
     const editionData = {
       childName: 'Neighbor',
@@ -182,7 +238,6 @@ Deno.serve(async (req) => {
       coloringImage: coloringImage || undefined,
     };
 
-    // Upsert into daily_editions
     const { error: upsertError } = await supabase
       .from('daily_editions')
       .upsert(
