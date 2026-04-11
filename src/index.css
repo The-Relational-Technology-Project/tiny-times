@@ -93,6 +93,13 @@
     display: none !important;
   }
 
+  .newspaper-mobile-wrap {
+    transform: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
   .newspaper-page {
     width: 7.9in !important;
     height: 10.15in !important;
