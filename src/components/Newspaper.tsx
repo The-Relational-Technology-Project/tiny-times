@@ -36,6 +36,17 @@ export function Newspaper({ data }: NewspaperProps) {
     saveName(name);
   }, [name]);
 
+  // Set CSS variable for mobile scaling
+  useEffect(() => {
+    function updateScale() {
+      const scale = Math.min(1, window.innerWidth / (8.5 * 96)); // 8.5in at 96dpi
+      document.documentElement.style.setProperty('--mobile-scale', String(scale));
+    }
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
   const handlePrint = () => window.print();
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
