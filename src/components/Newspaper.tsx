@@ -203,6 +203,7 @@ export function Newspaper({ data }: NewspaperProps) {
           </p>
         </div>
       </div>
+      </div>{/* close newspaper-mobile-wrap */}
     </div>
   );
 }
