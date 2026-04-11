@@ -123,3 +123,14 @@
   background: white;
   box-shadow: 0 4px 24px rgba(0,0,0,0.08);
 }
+
+/* Mobile: scale newspaper pages to fit viewport width */
+@media screen and (max-width: 639px) {
+  .newspaper-mobile-wrap {
+    transform-origin: top center;
+    width: 8.5in;
+    margin: 0 auto;
+    transform: scale(var(--mobile-scale, 0.45));
+    margin-bottom: calc((11in * 2 + 1.5rem) * (var(--mobile-scale, 0.45) - 1));
+  }
+}

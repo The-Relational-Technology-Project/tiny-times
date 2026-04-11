@@ -36,6 +36,17 @@ export function Newspaper({ data }: NewspaperProps) {
     saveName(name);
   }, [name]);
 
+  // Set CSS variable for mobile scaling
+  useEffect(() => {
+    function updateScale() {
+      const scale = Math.min(1, window.innerWidth / (8.5 * 96)); // 8.5in at 96dpi
+      document.documentElement.style.setProperty('--mobile-scale', String(scale));
+    }
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
   const handlePrint = () => window.print();
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,19 +60,26 @@ export function Newspaper({ data }: NewspaperProps) {
   return (
     <div className="min-h-screen bg-muted pb-8 print:bg-white print:pb-0 print:min-h-0">
       {/* Controls bar */}
-      <div className="no-print sticky top-0 z-50 bg-popover/95 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
-        <h1 className="font-display text-xl text-primary">The Tiny Times</h1>
-        <div className="flex items-center gap-2">
-          <Button onClick={handlePrint} size="sm" className="font-body font-semibold">
+      <div className="no-print sticky top-0 z-50 bg-popover/95 backdrop-blur border-b border-border px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+        <h1 className="font-display text-base sm:text-xl text-primary">The Tiny Times</h1>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Button onClick={handlePrint} size="sm" className="font-body font-semibold text-xs sm:text-sm px-2 sm:px-3">
             <Printer className="h-4 w-4" />
-            Print
+            <span className="hidden sm:inline">Print</span>
           </Button>
-          <Button onClick={() => navigate('/about')} variant="ghost" size="sm" className="font-body">
+          <Button onClick={() => navigate('/about')} variant="ghost" size="sm" className="font-body text-xs sm:text-sm px-2 sm:px-3">
             <Info className="h-4 w-4" />
-            About
+            <span className="hidden sm:inline">About</span>
           </Button>
         </div>
       </div>
+
+      {/* Mobile: scrollable/zoomable PDF-like container; Desktop: normal flow */}
+      <div className="sm:contents">
+        <div className="sm:hidden no-print px-3 py-2 text-center text-xs text-muted-foreground font-body">
+          Pinch to zoom · Scroll to read
+        </div>
+        <div className="newspaper-mobile-wrap sm:contents overflow-x-auto">
 
       {/* ===== PAGE 1: Front ===== */}
       <div className="newspaper-page newspaper-page-front mt-6 p-[0.4in]" style={{ background: 'white' }}>
@@ -195,6 +213,8 @@ export function Newspaper({ data }: NewspaperProps) {
             The Tiny Times · San Francisco · Made with ❤️ for {name}
           </p>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );
