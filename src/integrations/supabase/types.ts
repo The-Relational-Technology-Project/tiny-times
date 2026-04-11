@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_editions: {
+        Row: {
+          created_at: string
+          data: Json
+          edition_date: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          edition_date: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          edition_date?: string
+          id?: string
+        }
+        Relationships: []
+      }
       illustrations: {
         Row: {
           caption: string | null
