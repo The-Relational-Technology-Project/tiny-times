@@ -34,6 +34,10 @@ export default function About() {
             We are working on creating a free, personalized, daily email newsletter so families in
             the Sunset can easily print this out for their little ones!
           </p>
+          <p className="font-body text-base text-foreground/80 leading-relaxed mb-4">
+            We're planning to create ~400 unique illustrations about San Francisco for the drawing
+            page, which can then be paired with the daily SF news story.
+          </p>
           <p className="font-body text-base text-foreground/80 leading-relaxed">
             We're also planning to help this spread to other neighborhoods. We're thinking this will
             happen through customization on this site, open-sourcing the{' '}
