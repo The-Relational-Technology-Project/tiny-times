@@ -1,64 +1,65 @@
 
 
-# Print-First Redesign + Generate Coloring Images
+## Plan: Pre-generate daily edition, simplify to static front page
 
-## Problems Identified
+### Summary
 
-From the PDF print output:
-1. **Too much ink** — colored background boxes on every story, weather strip, events/fact/activity cards all have background fills
-2. **Content bleeds** — page 1 content overflows past the page break (visible in the PDF where the coloring page header is tiny and squished)
-3. **Not print-optimized** — looks like a screen app, not a newspaper
-4. **No coloring images** — page 2 is empty placeholder
+Stop generating per-visitor. Instead, generate the newspaper once daily at 1am PT via a scheduled edge function, store the result in a `daily_editions` table, and have the front page simply load today's edition. The greeting becomes inline-editable ("Good Morning, Neighbor!" by default). Nav simplifies to Print + Settings.
 
-## Plan
+### Database
 
-### 1. Redesign Newspaper Layout for Print
+**New table: `daily_editions`**
+- `id` (uuid, PK)
+- `edition_date` (date, unique) — the date this edition is for
+- `data` (jsonb) — the full `NewspaperData` payload (weather, stories, events, coloring image URL, etc.)
+- `created_at` (timestamptz, default now())
+- RLS: public SELECT (everyone reads today's edition), no public INSERT/UPDATE/DELETE
 
-**Remove colored background boxes.** Replace with:
-- Simple thin separator lines between sections
-- Category labels in color text only (no filled header bars)
-- Headlines in color, body text in black
-- Remove `rounded-xl`, `border-2`, and `background` fills from StoryBlock and bottom cards
-- Weather strip: just text with emoji, no background box
-- Events/Fun Fact/Activity: separated by thin rules, no background fills
+### Edge Function: `generate-daily-edition`
 
-**Result:** Mostly black text with color accents on headings and icons. Prints cleanly in B&W because color is only on non-essential decorative elements.
+A new edge function that:
+1. Fetches events from the outersunset.today API (hardcoded URL)
+2. Calls the existing `generate-news` function logic (inline, not via HTTP) for city="San Francisco"
+3. Selects a coloring illustration (same logic as current `selectIllustration`, but done server-side — query the `illustrations` table via Supabase client)
+4. Upserts the result into `daily_editions` for today's date
+5. Uses `childName: "Neighbor"` as the default
 
-**More spacious layout:**
-- Increase vertical spacing between sections (mt-3 → mt-5)
-- Add breathing room in the masthead area
-- Stories get more line-height and padding
+### Scheduled Cron Job
 
-### 2. Fix Page Break / Bleed
+Set up `pg_cron` + `pg_net` to call `generate-daily-edition` at 1am PT (9:00 UTC) daily.
 
-**Root cause:** Page 1 content uses `min-height: 11in` on screen but the print CSS sets `max-height: 10.4in` with `overflow: hidden`. Content is too tall.
+### Frontend Changes
 
-**Fix:**
-- Set page 1 to exactly `height: 10.15in` (letter minus margins) in print, with `overflow: hidden`
-- Remove `min-height: 11in` from print
-- On screen, keep the current sizing but cap visible content
-- Ensure page 2 starts fresh after the break
+**`Index.tsx`** — becomes a simple loader:
+- On mount, fetch today's edition from `daily_editions` where `edition_date = today`
+- If found, render the `Newspaper` component with that data
+- If not found, show a friendly "Today's edition is being prepared" message
+- No more `ConfigScreen` on first visit; settings accessed via gear icon
 
-### 3. Generate 5 Coloring Page Images with Lovable AI
+**`Newspaper.tsx`** — simplify:
+- Remove Generate button, loading states, step indicators
+- Remove Library button
+- Keep Print and Settings buttons only
+- The greeting ("Good Morning, Neighbor!") becomes an inline-editable text field — click to type a name, stored in localStorage, defaults to "Neighbor"
+- Data comes from props (pre-loaded from DB), no more client-side generation
 
-Use `google/gemini-3.1-flash-image-preview` to generate 5 kid-friendly coloring page images:
-- Simple black outlines on white background, no color fill
-- Subjects: a cat playing, a rocket in space, fish in the ocean, a tree with birds, a butterfly garden
-- Upload each to the `illustrations` storage bucket
-- Insert metadata rows into the `illustrations` table with appropriate tags
-- These will display on page 2 during demos
+**`ConfigScreen.tsx`** — keep as-is but accessed only from Settings gear icon. The `childName` field here can sync with the inline greeting name via localStorage.
 
-### 4. Files to Modify
+**Remove/simplify:**
+- `src/lib/api.ts` — remove `generateNewspaper` and `fetchNewsAndWeather` (generation moves server-side). Keep `getWeatherEmoji`/`getWeatherPrompt` helpers.
+- `src/pages/Library.tsx` — remove from routes (managed in backend only)
+- Remove Library route from `App.tsx`
 
-| File | Changes |
-|------|---------|
-| `src/components/Newspaper.tsx` | Remove background fills from StoryBlock. Remove colored boxes from events/fact/activity. Use thin separators instead. Simplify weather strip. |
-| `src/index.css` | Fix print page heights to prevent bleed. Set exact page dimensions. |
+### File Changes
 
-### 5. Script for Coloring Images
-
-Run a script that:
-1. Calls Lovable AI image generation for 5 coloring pages
-2. Uploads PNGs to the `illustrations` bucket
-3. Inserts rows into the `illustrations` table
+| File | Action |
+|------|--------|
+| `supabase/migrations/` | New migration: create `daily_editions` table with RLS |
+| `supabase/functions/generate-daily-edition/index.ts` | New edge function combining news gen + events + illustration selection |
+| `src/pages/Index.tsx` | Rewrite: fetch today's edition from DB, render Newspaper |
+| `src/components/Newspaper.tsx` | Simplify: remove generate/library, add inline-editable greeting |
+| `src/lib/api.ts` | Strip to helpers only; remove generation logic |
+| `src/App.tsx` | Remove `/library` route |
+| `src/pages/Library.tsx` | Delete |
+| Cron job | Insert via SQL (pg_cron schedule) |
 
