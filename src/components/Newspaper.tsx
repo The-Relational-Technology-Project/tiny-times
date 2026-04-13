@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { NewspaperData } from '@/lib/types';
 import { getWeatherPrompt } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,18 @@ export function Newspaper({ data }: NewspaperProps) {
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
-  const handlePrint = () => window.print();
+  const handlePrint = useCallback(() => {
+    const editionDate = data.date
+      ? new Date(data.date).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+    supabase
+      .from('print_events')
+      .insert({ edition_date: editionDate })
+      .then(({ error }) => {
+        if (error) console.error('Failed to log print event:', error);
+      });
+    window.print();
+  }, [data.date]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setName(e.target.value);
