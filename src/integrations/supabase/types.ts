@@ -68,6 +68,24 @@ export type Database = {
         }
         Relationships: []
       }
+      print_events: {
+        Row: {
+          edition_date: string | null
+          id: string
+          printed_at: string
+        }
+        Insert: {
+          edition_date?: string | null
+          id?: string
+          printed_at?: string
+        }
+        Update: {
+          edition_date?: string | null
+          id?: string
+          printed_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
